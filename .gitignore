@@ -1,0 +1,9 @@
+build/*
+!build/.gitkeep
+lib/*
+!lib/.gitkeep
+bin/*
+!bin/.gitkeep
+*.o
+*.a
+*.so
