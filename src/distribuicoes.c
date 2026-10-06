@@ -21,6 +21,7 @@ return c;
     *erro = ESTAT_ERRO_PARAMETRO_INVALIDO;
     return 0.0;
   }
+
   *erro = ESTAT_OK;
   if(k > n) return 0.0;
   return binomio(n, k) * pow(p, k) * pow (1.00-p, n - k);
@@ -28,11 +29,11 @@ return c;
 
 // Calcula P(X = k), X ~ G(p) 
  double probabilidade_geometrica(int k, double p, int *erro){
-  if(k < 0){
-    *erro = ESTAT_ERRO_N_INVALIDO;
-    return 0.0;
-  }
-  if(p <= 0.0 || p > 1.0){ 
+   if( k < 0){
+     *erro = ESTAT_ERRO_N_INVALIDO;
+     return 0.0;
+   }
+   if(p <= 0.0 || p > 1.0){ 
     *erro = ESTAT_ERRO_PARAMETRO_INVALIDO;
     return 0.0; 
   }
