@@ -54,22 +54,6 @@ double variancia_geometrica(double p, int *erro);
  */
 double variancia_uniforme(double a, double b, int *erro);
 
-/**
- * @brief Função que calcula a variância de uma distribuiçao de variáveis contínuas em um intervalo
- *
- *
- * @param a Menor número do intervalo 
- * @param b Maior número do intervalo 
- * @param erro Ponteiro para onde o código de erro será escrito
- *             (ESTAT_OK em caso de sucesso).
- *
- * @return A função retorna a variância da uniforme ou 0.0 em caso
- *         de erro (verificar *erro para o motivo).
- *
- * @note A distribuição é para variáveis contínuas em um intervalo [a,b].
- * @note Define *erro=ESTAT_ERRO_PARAMETRO_INVALIDO se a>=b.
- */
-double variancia_uniforme(double a, double b, int *erro);
 
 /**
  * @brief Função que calcula a variância de uma distribuição Poisson
