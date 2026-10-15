@@ -10,3 +10,10 @@ bin/*
 docs/html/
 docs/latex/
 warnings.txt
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+relatorio.pdf
+.vscode/
