@@ -4,6 +4,11 @@
 #include "erros.h"
 
 /**
+ * @file distribuicoes.h
+ * @brief Módulo de Distribuição de Probabilidade.
+ */
+
+/**
  * @brief Calcula P(X = k) para X ~ Binomial(n, p).
  * @param k Quantidade de sucessos.
  * @param n Quantidade de ensaios.

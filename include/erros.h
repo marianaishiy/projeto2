@@ -1,6 +1,12 @@
 #ifndef ERROS_H
 #define ERROS_H
 
+/**
+ * @file erros.h
+ * @brief Módulo de Erros.
+ */
+
+
 #define ESTAT_OK 0
 #define ESTAT_ERRO_N_INVALIDO 1
 #define ESTAT_ERRO_TAMANHOS_DIFERENTES 2

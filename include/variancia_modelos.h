@@ -5,6 +5,11 @@
 #include "erros.h"
 
 /**
+ * @file variancia_modelos.h
+ * @brief Módulo de Cálculo de Variância.
+ */
+
+/**
  * @brief Função que calcula a variância de uma distribuição binomial
  *
  *
