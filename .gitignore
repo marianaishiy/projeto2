@@ -7,3 +7,6 @@ bin/*
 *.o
 *.a
 *.so
+docs/html/
+docs/latex/
+warnings.txt
