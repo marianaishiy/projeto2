@@ -3,6 +3,7 @@
 #include "erros.h"
 #include "esperanca.h"
 #include "distribuicoes.h"
+#include "correlacao.h"
 
 const char *mensagem_erro(int codigo_erro){
     switch(codigo_erro){
@@ -78,10 +79,31 @@ void demo_distribuicoes(){
     v = probabilidade_poisson(2, -1, &erro);
     imprime_res("P Poisson(k=2, lambda=-1) [invalido]", v, erro);   
 }
+void demo_correlacao(){
+    printf("=====Covariância, Correlação e Coeficiente Linear de Regressão=====\n");
+    double amostra_x[] = {2.0, 4.0, 5.0, 7.0, 9.0};
+    double amostra_y[] = {3.0, 6.0, 5.0, 9.0, 12.0};
+    int n = sizeof(amostra_x) / sizeof(amostra_x[0]);
+    int erro;
+    double cov = covariancia(amostra_x, amostra_y, n, &erro);
+    imprime_res("Covariância", cov, erro);
+    double cov_invalida = covariancia(amostra_x, amostra_y, 0, &erro);
+    imprime_res("Covariância com n=0 [invalido]", cov_invalida, erro);
+    double corr = correlacao(amostra_x, amostra_y, n, &erro);
+    imprime_res("Correlação", corr, erro);
+    double corr_invalida = correlacao(amostra_x, amostra_y, 0, &erro);
+    imprime_res("Correlação com n=0 [invalido]", corr_invalida, erro);
+    double coef_linear = coeficiente_linear_regressao(amostra_x, amostra_y, n, &erro);
+    imprime_res("Coeficiente Linear de Regressão", coef_linear, erro);
+    double coef_linear_invalido = coeficiente_linear_regressao(amostra_x, amostra_y, 0, &erro);
+    imprime_res("Coeficiente Linear de Regressão com n=0 [invalido]", coef_linear_invalido, erro);  
+    
+}
 int main(){
     demo_esperanca();
     demo_variancia();
     demo_distribuicoes();
+    demo_correlacao();
 
     return 0;
 }
