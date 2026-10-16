@@ -1,0 +1,579 @@
+\documentclass[12pt,a4paper]{article}
+
+% ---------------------------------------------------------------
+% Pacotes
+% ---------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+
+% ---------------------------------------------------------------
+% Marcador de pendência: aparece em vermelho no PDF.
+% Para achar tudo que falta:  grep -n "todo{" relatorio.tex
+% ---------------------------------------------------------------
+% Para voltar a mostrar as pendencias em vermelho, troque as duas linhas abaixo por:
+% \newcommand{\todo}[1]{\textcolor{red}{[PENDENTE: #1]}}
+\newcommand{\todo}[1]{}
+
+% ---------------------------------------------------------------
+% Código-fonte
+% ---------------------------------------------------------------
+\lstdefinestyle{c}{
+  language=C,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!70!black},
+  commentstyle=\color{green!40!black},
+  stringstyle=\color{red!60!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  tabsize=4,
+  showstringspaces=false,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {â}{{\^a}}1 {ê}{{\^e}}1 {ô}{{\^o}}1 {ã}{{\~a}}1 {õ}{{\~o}}1
+           {ç}{{\c c}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Ç}{{\c C}}1
+}
+\lstdefinestyle{shell}{
+  basicstyle=\ttfamily\small,
+  numbers=none,
+  frame=single,
+  breaklines=true,
+  showstringspaces=false,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {â}{{\^a}}1 {ê}{{\^e}}1 {ô}{{\^o}}1 {ã}{{\~a}}1 {õ}{{\~o}}1
+           {ç}{{\c c}}1
+}
+\lstset{style=c}
+
+\newcommand{\cod}[1]{\texttt{#1}}
+
+% ---------------------------------------------------------------
+% Capa
+% ---------------------------------------------------------------
+\title{\textbf{lib\_estat}\\[0.3em]
+       \large Biblioteca Estatística em C para Variáveis Aleatórias\\[0.3em]
+       \large Relatório Técnico}
+\author{
+  Integrante A \\
+  Maria Carolina Sobral Vila Nova de Carvalho Vieira \\
+  Integrante C \\
+  Integrante D
+}
+% Para incluir disciplina e professor(a): \date{Disciplina, professor(a) \\ Outubro de 2026}
+\date{19 de outubro de 2026, Técnicas de Programação}
+
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\tableofcontents
+\newpage
+
+% ===============================================================
+\section{Introdução}
+% ===============================================================
+
+\subsection{Objetivo do projeto}
+O projeto tem como objetivo fornecer uma biblioteca em C que implemente funções para
+auxiliar o seu usuário a calcular medidas estatísticas de variáveis aleatórias, como
+esperança, variância, distribuições de probabilidade e medidas de associação entre
+duas variáveis aleatórias. 
+
+
+\subsection{Domínio escolhido}
+Variáveis aleatórias, com quatro modelos: Binomial, Geométrica, Uniforme e
+Poisson, mais medidas de associação entre duas variáveis (covariância,
+correlação e regressão linear).
+
+\subsection{Escopo}
+Resumo do que a biblioteca entrega: 15 funções públicas em 4 módulos, aplicação
+cliente, Makefile, testes, documentação Doxygen e versão \cod{v1.0}.
+
+\subsection{Organização do relatório}
+\todo{um parágrafo apontando as seções seguintes}
+
+% ===============================================================
+\section{Organização do Grupo e do Projeto}
+% ===============================================================
+
+\subsection{Divisão de tarefas}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}p{4.2cm}p{4.2cm}p{6cm}@{}}
+\toprule
+Integrante & Módulo & Frente extra \\
+\midrule
+A & Esperança dos modelos & Makefile, bibliotecas \cod{.a} e \cod{.so} \\
+Maria Carolina Sobral Vila Nova de Carvalo Vieira & Variância dos modelos & Testes automatizados, GDB, aplicação cliente \\
+C & Distribuições de probabilidade & Relatório e Doxygen \\
+D & Covariância, correlação e regressão & Git (branches, merges, tag \cod{v1.0}) \\
+\bottomrule
+\end{tabular}
+\caption{Divisão de tarefas do grupo.}
+\end{table}
+
+\subsection{Estrutura de diretórios}
+\begin{lstlisting}[style=shell]
+projeto2/
+|-- include/   (cabecalhos .h: esperanca, variancia_modelos,
+|               distribuicoes, correlacao, erros)
+|-- src/       (implementacoes .c)
+|-- tests/     (um test_*.c por modulo)
+|-- app/       (main.c da aplicacao cliente)
+|-- lib/       (liblib_estat.a e liblib_estat.so)
+|-- build/     (objetos .o)
+|-- bin/       (executaveis)
+|-- docs/      (Doxygen e evidencias do GDB)
+|-- Makefile
+`-- README.md
+\end{lstlisting}
+
+% ===============================================================
+\section{Arquitetura da Biblioteca}
+% ===============================================================
+
+\subsection{Visão geral dos módulos}
+\todo{diagrama simples: cabeçalhos $\to$ implementações $\to$ biblioteca $\to$ aplicação}
+
+\subsection{Funções públicas}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lp{9.5cm}l@{}}
+\toprule
+Módulo & Função & Resp. \\
+\midrule
+Esperança & \cod{esperanca\_binomial}, \cod{esperanca\_geometrica},
+            \cod{esperanca\_uniforme}, \cod{esperanca\_poisson} & A \\
+Variância & \cod{variancia\_binomial}, \cod{variancia\_geometrica},
+            \cod{variancia\_uniforme}, \cod{variancia\_poisson} & B \\
+Distribuições & \cod{probabilidade\_binomial}, \cod{probabilidade\_geometrica},
+            \cod{probabilidade\_poisson}, \cod{densidade\_uniforme} & C \\
+Correlação & \cod{covariancia}, \cod{correlacao},
+            \cod{coeficiente\_linear\_regressao} & D \\
+\bottomrule
+\end{tabular}
+\caption{As 15 funções públicas da biblioteca.}
+\end{table}
+
+\subsection{Tratamento de erros}
+Todas as funções recebem um parâmetro \cod{int *erro}, preenchido com um código
+definido em \cod{include/erros.h}. Em caso de erro, a função devolve um valor
+neutro e informa a causa pelo código.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llp{7cm}@{}}
+\toprule
+Constante & Valor & Significado \\
+\midrule
+\cod{ESTAT\_OK} & 0 & Sem erro \\
+\cod{ESTAT\_ERRO\_N\_INVALIDO} & 1 & Tamanho $n$ inválido (por exemplo, $n \le 0$) \\
+\cod{ESTAT\_ERRO\_TAMANHOS\_DIFERENTES} & 2 & Vetores de tamanhos diferentes \\
+\cod{ESTAT\_ERRO\_DIVISAO\_ZERO} & 3 & Divisão por zero \\
+\cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} & 4 & Parâmetro fora do domínio \\
+\bottomrule
+\end{tabular}
+\caption{Códigos de erro da biblioteca.}
+\end{table}
+
+\subsection{Decisões de projeto}
+\begin{itemize}[leftmargin=*]
+  \item Erro via parâmetro \cod{int *erro} (e não via \cod{errno} ou \cod{exit}),
+        para que a biblioteca nunca encerre o programa do usuário.
+        \todo{incluir a justificativa discutida na reunião}
+  \item Cabeçalhos independentes, cada um incluindo apenas \cod{erros.h}.
+  \item Convenção da distribuição geométrica: $k = 0, 1, 2, \ldots$ (número de falhas até o primeiro sucesso).
+  Uma vez que há uma variação em cada representação da distribuição geométrica, decidimos adotar a convenção de $k$ como o número de falhas até o primeiro sucesso, que é a forma mais comum e intuitiva, no estudo de variáveis aleatórias.
+  \item Tratamento de $p = 0$ na geométrica:
+        \todo{registrar o código de erro padronizado entre Esperança e Variância}
+\end{itemize}
+
+% ===============================================================
+\section{Descrição dos Módulos}
+% ===============================================================
+
+% ---------------------------------------------------------------
+\subsection{Esperança dos modelos}
+% ---------------------------------------------------------------
+\todo{autor: A. Fórmulas, assinaturas, validações e exemplos de cada função}
+
+% ---------------------------------------------------------------
+\subsection{Variância dos modelos}
+\label{sec:variancia}
+% ---------------------------------------------------------------
+Este módulo calcula a variância dos quatro modelos de variáveis aleatórias. Os protótipos estão em
+\cod{include/variancia\_modelos.h} e a implementação em
+\cod{src/variancia\_modelos.c}.
+
+\subsubsection{Fórmulas}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Modelo & Parâmetros & Variância \\
+\midrule
+Binomial   & $n, p$        & $\operatorname{Var}(X) = n\,p\,(1-p)$ \\
+Geométrica & $p$           & $\operatorname{Var}(X) = \dfrac{1-p}{p^{2}}$ \\
+Uniforme   & $a, b$        & $\operatorname{Var}(X) = \dfrac{(b-a)^{2}}{12}$ \\
+Poisson    & $\lambda$     & $\operatorname{Var}(X) = \lambda$ \\
+\bottomrule
+\end{tabular}
+\caption{Variância dos modelos implementados.}
+\end{table}
+
+Na geométrica foi usada a fórmula fechada $(1-p)/p^{2}$, e não o cálculo a partir
+de $E[X^2] - E[X]^2$, porque a primeira é mais eficiente e não há risco de subtração de números próximos que causem perda de precisão.
+
+
+\subsubsection{Assinaturas das funções utilizadas}
+\begin{lstlisting}
+double variancia_binomial(int n, double p, int *erro);
+double variancia_geometrica(double p, int *erro);
+double variancia_uniforme(double a, double b, int *erro);
+double variancia_poisson(double lambda, int *erro);
+\end{lstlisting}
+
+\subsubsection{Validações}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Função & Condição & Código de erro \\
+\midrule
+\cod{variancia\_binomial}   & $n \le 0$             & \cod{ESTAT\_ERRO\_N\_INVALIDO} \\
+                            & $p < 0$ ou $p > 1$    & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\cod{variancia\_geometrica} & $p < 0$ ou $p > 1$    & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+                            & $p = 0$               & \cod{ESTAT\_ERRO\_DIVISAO\_ZERO} \\
+\cod{variancia\_uniforme}   & $a \ge b$             & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\cod{variancia\_poisson}    & $\lambda \le 0$       & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\bottomrule
+\end{tabular}
+\caption{Validações de entrada do módulo de variância.}
+\end{table}
+
+\subsubsection{Exemplo de implementação}
+\begin{lstlisting}
+double variancia_binomial(int n, double p, int *erro){
+    if (n <= 0) {
+        *erro = ESTAT_ERRO_N_INVALIDO;
+        return 0.0;
+    }
+    if (p < 0 || p > 1) {
+        *erro = ESTAT_ERRO_PARAMETRO_INVALIDO;
+        return 0.0;
+    }
+
+    *erro = ESTAT_OK;
+    return n*p*(1-p);
+
+
+}
+\end{lstlisting}
+
+\subsubsection{Exemplos numéricos}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+Chamada & Resultado \\
+\midrule
+\cod{variancia\_binomial(10, 0.5)}   & 2,5 \\
+\cod{variancia\_geometrica(0.5)}     & 2 \\
+\cod{variancia\_uniforme(0, 10)}     & 8,3333 \\
+\cod{variancia\_poisson(4)}          & 4 \\
+\bottomrule
+\end{tabular}
+\caption{Valores conferidos manualmente e pela aplicação cliente.}
+\end{table}
+
+\subsubsection{Inconsistência identificada}
+Para $p = 0$, \cod{variancia\_geometrica} devolve \cod{ESTAT\_ERRO\_DIVISAO\_ZERO},
+enquanto \cod{esperanca\_geometrica} devolve \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO}.
+Com isso, o grupo decidiu padronizar o erro para \cod{ESTAT\_ERRO\_DIVISAO\_ZERO} em ambos os casos.
+
+% ---------------------------------------------------------------
+\subsection{Distribuições de probabilidade}
+% ---------------------------------------------------------------
+\todo{autor: C. Fórmulas, validações, convenção de $k$ na geométrica, exemplos}
+
+% ---------------------------------------------------------------
+\subsection{Covariância, correlação e regressão}
+% ---------------------------------------------------------------
+\todo{autor: D. Fórmulas, vetores de tamanhos diferentes, desvio padrão zero, exemplos}
+
+% ===============================================================
+\section{Testes Automatizados}
+% ===============================================================
+
+\subsection{Padrão adotado}
+Os testes usam \cod{assert} da biblioteca padrão, com uma função auxiliar de
+comparação com tolerância para números em ponto flutuante:
+\begin{lstlisting}
+int aproximadamente(double x, double y) {
+    return fabs(y - x) < 0.000001;
+} 
+\end{lstlisting}
+Escolheu-se \cod{assert} por ser simples, confiável e amplamente usado, e não criar macros próprias que poderiam confundir o leitor.
+Também utilizou-se a função \cod{aproximadamente} para comparar os números double e evitar problemas de arredondamento que podem ocorrer 
+ao longo do código.
+
+Cada módulo tem um arquivo \cod{tests/test\_<modulo>.c}, e cada teste informa
+no terminal o seu nome quando passa.
+
+
+\subsection{Estratégia de casos}
+Cada função é testada com (1) caso normal com valor conhecido, (2) cada
+condição de erro, e (3) valores limite ($p = 0$, $p = 1$, $n = 0$ etc.).
+
+\subsection{Cobertura}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Módulo & Funções & Testes \\
+\midrule
+Esperança      & 4 & \todo{nº} \\
+Variância      & 4 & 15 \\
+Distribuições  & 4 & \todo{nº} \\
+Correlação     & 3 & \todo{nº} \\
+\midrule
+Total          & 15 & \todo{soma} \\
+\bottomrule
+\end{tabular}
+\caption{Cobertura dos testes por módulo.}
+\end{table}
+
+\subsubsection{Testes do módulo de variância}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llp{6cm}@{}}
+\toprule
+Função & Nº de testes & Casos cobertos \\
+\midrule
+Binomial   & 6 & normal, $n$ inválido, $n = 0$, $p$ inválido, $p = 0$, $p = 1$ \\
+Geométrica & 4 & normal, $p$ inválido, divisão por zero, $p = 1$ \\
+Uniforme   & 3 & normal, $a \ge b$, $a$ negativo \\
+Poisson    & 2 & normal, $\lambda$ inválido \\
+\bottomrule
+\end{tabular}
+\caption{Testes de \cod{variancia\_modelos}.}
+\end{table}
+
+\subsection{Como executar}
+\begin{lstlisting}[style=shell]
+make test
+\end{lstlisting}
+\todo{incluir a saída real do \cod{make test} com todos os módulos passando}
+
+% ===============================================================
+\section{Depuração com GDB}
+% ===============================================================
+
+Cenário: introduzir um defeito proposital, observar o teste falhar, localizar a
+causa com o depurador e corrigir.
+
+\subsection{Estado inicial (testes passando)}
+\todo{saída de \cod{evidencia\_1\_passa.txt}}
+
+\subsection{Defeito introduzido}
+Troca do sinal em \cod{variancia\_binomial}:
+\begin{lstlisting}
+return n * p * (1 + p);   /* defeito: o correto e (1 - p) */
+\end{lstlisting}
+\todo{diff de \cod{evidencia\_2\_bug.diff}}
+
+\subsection{Falha do teste}
+Para $n = 10$ e $p = 0{,}5$ o valor esperado é $2{,}5$, mas o código devolve
+$7{,}5$.
+\todo{saída de \cod{evidencia\_3\_falha.txt} com função e linha do \cod{assert}}
+
+\subsection{Sessão de depuração}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lp{7.5cm}@{}}
+\toprule
+Comando & Objetivo \\
+\midrule
+\cod{gdb ./bin/test\_variancia}        & abrir o executável compilado com \cod{-g} \\
+\cod{break variancia\_binomial}         & parar na função suspeita \\
+\cod{run}                               & executar até o ponto de parada \\
+\cod{info args}                         & ver $n$ e $p$ recebidos \\
+\cod{next}                              & avançar uma linha \\
+\cod{print n*p*(1-p)}                   & valor da fórmula correta \\
+\cod{print n*p*(1+p)}                   & valor da fórmula do código \\
+\cod{bt}                                & pilha de chamadas \\
+\bottomrule
+\end{tabular}
+\caption{Comandos usados na depuração.}
+\end{table}
+\todo{transcrição de \cod{evidencia\_4\_depuracao.txt} (sessão no Linux)}
+
+\subsection{Correção e verificação}
+\todo{diff de correção e saída com os testes voltando a passar}
+
+\subsection{Lições}
+\todo{2 ou 3 frases sobre o que o depurador mostrou que a mensagem do
+\cod{assert} sozinha não mostrava}
+
+% ===============================================================
+\section{Aplicação Cliente}
+% ===============================================================
+
+\subsection{Objetivo}
+Mostrar o uso da biblioteca por um programa externo, que inclui apenas os
+cabeçalhos públicos e nunca os \cod{.c}.
+
+\subsection{Estrutura do programa}
+Funções \cod{demo\_esperanca}, \cod{demo\_variancia}, \cod{demo\_distribuicoes}
+e \cod{demo\_correlacao}, mais as auxiliares \cod{mensagem\_erro} e
+\cod{imprime\_res}, que traduzem o código de erro em texto.
+
+\subsection{Chamadas inválidas de propósito}
+Cada demonstração inclui chamadas com argumentos inválidos para mostrar o
+tratamento de erros (por exemplo, \cod{variancia\_binomial(10, 1.5)}).
+
+\subsection{Saída da aplicação}
+\todo{colar a saída completa do app, com a seção de correlação}
+
+\subsection{Versões estática e dinâmica}
+O uso e a compilação de bibliotecas estáticas e dinâmicas são demonstrados no \cod{Makefile}. A aplicação cliente é compilada duas vezes: uma com a biblioteca estática (\cod{liblib\_estat.a}) e outra com a biblioteca dinâmica (\cod{liblib\_estat.so}).
+
+No executável compilado pela biblioteca estática, a biblioteca é incorporada ao executável durante a compilação da aplicação, assim permitindo que a biblioteca 
+não esteja disponível após a compilação.
+
+No executável compilado pela biblioteca dinâmica, o código não é incorporado: o executável guarda apenas a referência à biblioteca, e o carregador dinâmico a procura quando o programa é executado. 
+Se ele não a encontrar, ocorre um erro de carregamento da biblioteca. Para evitar isso, a pasta onde ela está pode ser indicada pela variável de ambiente \cod{LD\_LIBRARY\_PATH} ou gravada no próprio executável
+na hora da ligação, com a opção \cod{-Wl,-rpath}. 
+Já as opções \cod{-L} e \cod{-l} são usadas apenas na compilação, para que o linker localize a biblioteca.
+\todo{nomes dos executáveis, solução adotada pelo grupo (\cod{LD\_LIBRARY\_PATH} ou \cod{rpath}), mensagem de erro real e saída do \cod{ldd}}
+
+% ===============================================================
+\section{Compilação e Distribuição}
+% ===============================================================
+
+\subsection{Makefile}
+Alvos: \cod{all}, \cod{test}, \cod{run}, \cod{install}, \cod{clean}.
+\todo{autor: A. Descrever cada alvo e as variáveis (\cod{CC}, \cod{CFLAGS}, \cod{PREFIX})}
+
+\subsection{Biblioteca estática e dinâmica}
+\begin{itemize}[leftmargin=*]
+  \item Estática: \cod{ar rcs lib/liblib\_estat.a build/*.o}.
+  \item Dinâmica: objetos com \cod{-fPIC} e \cod{gcc -shared}.
+  \item Ligação com \cod{-lm}.
+\end{itemize}
+
+\subsection{Compilação incremental}
+\todo{demonstrar: alterar um \cod{.c}, rodar \cod{make} e mostrar que só ele é recompilado}
+
+\subsection{Instalação}
+\begin{lstlisting}[style=shell]
+make install PREFIX=/caminho/de/instalacao
+\end{lstlisting}
+\todo{mostrar a árvore instalada}
+
+\subsection{Localização da biblioteca dinâmica}
+\todo{explicar o problema de o executável não achar a \cod{.so} e a solução usada:
+\cod{rpath} ou \cod{LD\_LIBRARY\_PATH}}
+
+% ===============================================================
+\section{Documentação com Doxygen}
+% ===============================================================
+
+\subsection{Convenções de comentário}
+Todos os cabeçalhos usam \cod{@file}, \cod{@brief}, \cod{@param} (incluindo
+\cod{erro}) e \cod{@return}.
+
+\subsection{Geração}
+\begin{lstlisting}[style=shell]
+doxygen Doxyfile
+\end{lstlisting}
+\todo{autor: C. Mostrar a página inicial e uma página de função no HTML}
+
+\subsection{Verificação}
+A geração sobre o diretório \cod{include/} foi executada sem nenhum aviso
+(\cod{WARN\_IF\_UNDOCUMENTED}, \cod{WARN\_NO\_PARAMDOC} ativos). Durante essa
+verificação, foi detectada e corrigida uma declaração duplicada de
+\cod{variancia\_uniforme} no cabeçalho do módulo de variância.
+
+% ===============================================================
+\section{Controle de Versão}
+% ===============================================================
+
+\subsection{Fluxo de branches}
+\todo{autor: D. Branches \cod{main}, \cod{develop}, \cod{esperanca}, \cod{modelos},
+\cod{variancia}, \cod{app\_client} etc., e a regra de integração em \cod{develop}}
+
+\subsection{Histórico}
+\todo{\cod{git log --oneline --graph} resumido}
+
+\subsection{Conflitos e como foram resolvidos}
+\todo{se houve algum}
+
+\subsection{Versão \cod{v1.0}}
+\todo{tag, data e hash do commit}
+
+% ===============================================================
+\section{Dificuldades e Soluções}
+% ===============================================================
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{5cm}p{9cm}@{}}
+\toprule
+Dificuldade & Solução \\
+\midrule
+Convenção da geométrica diferente entre módulos & \todo{decisão final} \\
+Declaração duplicada no cabeçalho de variância & Detectada pelo Doxygen e removida \\
+GDB indisponível no macOS com chip Apple & Sessão feita em máquina Linux; ensaio prévio com \cod{lldb} \\
+\todo{outras} & \todo{} \\
+\bottomrule
+\end{tabular}
+\caption{Principais problemas encontrados.}
+\end{table}
+
+% ===============================================================
+\section{Conclusão}
+% ===============================================================
+\todo{o que foi entregue frente ao enunciado, o que o grupo aprendeu e
+melhorias futuras (por exemplo, mais modelos como Normal e Exponencial)}
+
+% ===============================================================
+\appendix
+\section{Código-fonte}
+% ===============================================================
+\subsection{\cod{include/variancia\_modelos.h}}
+\todo{\cod{\textbackslash lstinputlisting[style=c]\{include/variancia\_modelos.h\}}}
+
+\subsection{\cod{src/variancia\_modelos.c}}
+\todo{\cod{\textbackslash lstinputlisting[style=c]\{src/variancia\_modelos.c\}}}
+
+\subsection{\cod{tests/test\_variancia\_modelos.c}}
+\todo{\cod{\textbackslash lstinputlisting[style=c]\{tests/test\_variancia\_modelos.c\}}}
+
+\subsection{\cod{app/main.c}}
+\todo{\cod{\textbackslash lstinputlisting[style=c]\{app/main.c\}}}
+
+\section{Saídas completas}
+\todo{\cod{make test} e \cod{make run}}
+
+\section{README}
+\todo{referência ao \cod{README.md} do repositório}
+
+\end{document}

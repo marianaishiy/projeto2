@@ -1,6 +1,11 @@
 #ifndef ESPERANCA_H
 #define ESPERANCA_H
 
+/**
+ * @file esperanca.h
+ * @brief Módulo de Cálculo de Esperança.
+ */
+
 #include "erros.h"
 
 /**
