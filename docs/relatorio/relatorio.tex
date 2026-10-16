@@ -246,7 +246,8 @@ Função & Condição & Código de erro \\
 \midrule
 \cod{esperanca\_binomial}   & $n \le 0$          & \cod{ESTAT\_ERRO\_N\_INVALIDO} \\
                             & $p < 0$ ou $p > 1$ & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
-\cod{esperanca\_geometrica} & $p \le 0$ ou $p > 1$ & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\cod{esperanca\_geometrica} & $p < 0$ ou $p > 1$ & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+                            & $p = 0$            & \cod{ESTAT\_ERRO\_DIVISAO\_ZERO} \\
 \cod{esperanca\_uniforme}   & $a \ge b$          & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
 \cod{esperanca\_poisson}    & $\lambda \le 0$    & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
 \bottomrule
