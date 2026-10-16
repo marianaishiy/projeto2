@@ -68,4 +68,10 @@ app: $(BIN_DIR)/app
 
 app-dyn: $(BIN_DIR)/app_dyn
 
-.PHONY: all clean test test-dyn app app-dyn
+.PHONY: all clean test test-dyn app app-dyn run run-dyn
+
+run: $(BIN_DIR)/app
+	./$(BIN_DIR)/app
+
+run-dyn: $(BIN_DIR)/app_dyn
+	LD_LIBRARY_PATH=$(LIB_DIR) ./$(BIN_DIR)/app_dyn
