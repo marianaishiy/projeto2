@@ -38,7 +38,7 @@ void demo_esperanca(){
     v=esperanca_geometrica(0.5,&erro);
     imprime_res("Esperança Geometrica(0.5)",v,erro);
     v=esperanca_poisson(10,&erro);
-    imprime_res("Esperança de Poisson",v,erro);
+    imprime_res("Esperança de Poisson(10)",v,erro);
     v=esperanca_uniforme(5,10,&erro);
     imprime_res("Esperança Uniforme(5,10)",v,erro);
     v = esperanca_binomial(0, 0.5, &erro);
@@ -56,7 +56,7 @@ void demo_variancia(){
     imprime_res("Variancia Geometrica(0.5)", v, erro);         
     v = variancia_uniforme(0, 10, &erro);
     imprime_res("Variancia Uniforme(0, 10)", v, erro);          
-    v = variancia_poisson(4, &erro);
+    v = variancia_poisson(4,&erro);
     imprime_res("Variancia Poisson(4)", v, erro);              
     v = variancia_binomial(10, 1.5, &erro);
     imprime_res("Variancia Binomial(10, 1.5) [invalido]", v, erro);
