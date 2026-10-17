@@ -1,0 +1,58 @@
+== bin/test_correlacao
+testes de covariancia: OK
+testes de correlacao: OK
+testes de regressao: OK
+todos os testes do modulo passaram!
+== bin/test_distribuicoes
+[passou] test_probabilidade_binomial_n_invalido
+[passou] test_probabilidade_binomial_p_invalida
+[passou] test_probabilidade_binomial_valida
+[passou] test_probabilidade_binomial_k_menor_que_zero
+[passou] test_probabilidade_binomial_k_maior_que_n
+[passou] test_probabilidade_binomial_n_zero
+[passou] test_probabilidade_geometrica_p_invalida
+[passou] test_probabilidade_geometrica_k_invalido
+[passou] test_probabilidade_geometrica
+[passou] test_probabilidade_poisson_lambda_invalido
+[passou] test_probabilidade_poisson_k_invalido
+[passou] test_probabilidade_poisson
+[passou] test_densidade_uniforme
+[passou] test_densidade_uniforme_a_invalido
+[passou] test_densidade_uniforme_a_igual_b
+[passou] test_probabilidade_binomial_coeficiente
+[passou] test_probabilidade_binomial_p_maior_que_um
+[passou] test_probabilidade_binomial_p_limites
+[passou] test_probabilidade_binomial_n_grande
+[passou] test_probabilidade_geometrica_p_maior_que_um
+[passou] test_probabilidade_geometrica_p_um
+[passou] test_probabilidade_poisson_k_positivo
+[passou] test_probabilidade_poisson_lambda_zero
+[passou] test_probabilidade_poisson_k_grande
+[passou] test_densidade_uniforme_extremos
+== bin/test_esperanca
+Passou em test_esperanca_binomial_n_invalido.
+Passou em test_esperanca_binomial_parametro_invalido.
+Passou em test_esperanca_binomial_valido.
+Passou em test_esperanca_geometrica_parametro_invalido.
+Passou em test_esperanca_geometrica_valido.
+Passou em test_esperanca_uniforme_parametro_invalido
+Passou em test_esperanca_uniforme_valido.
+Passou em test_esperanca_poisson_parametro_invalido
+Passou em test_esperanca_poisson_valido.
+Todos os testes obtiveram sucesso!.
+== bin/test_variancia_modelos
+passou no teste_variancia_binomial_erro_n_invalido
+passou no teste_variancia_binomial_erro_p_invalido
+passou no teste_variancia_binomial_normal
+passou no teste_variancia_binomial_p_igual_1
+passou no teste_variancia_binomial_n_igual_0
+passou no teste_variancia_binomial_p_igual_0
+passou no teste_variancia_geo_erro_div_por_zero
+passou no teste_variancia_geo_erro_p_invalido
+passou no teste_variancia_geo_normal
+passou no teste_variancia_geo_p_igual_1
+passou no teste_variancia_poisson_lambda_invalido
+passou no teste_variancia_poisson_normal
+passou no teste_variancia_uniforme_erro_a_maior_ou_igual_b
+passou no teste_variancia_uniforme_normal
+passou no teste_variancia_uniforme_a_negativo

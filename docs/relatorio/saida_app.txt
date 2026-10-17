@@ -1,0 +1,27 @@
+=====Esperança dos modelos=====
+Esperança Binomial(10,0.5): 5.000000
+Esperança Geometrica(0.5): 1.000000
+Esperança de Poisson(10): 10.000000
+Esperança Uniforme(5,10): 7.500000
+Esperança Binomial(0, 0.5) [invalido]: N invalido
+Esperança Uniforme(10, 5) [invalido]: Parametro invalido
+=====Variância dos modelos=====
+Variancia Binomial(10, 0.5): 2.500000
+Variancia Geometrica(0.5): 2.000000
+Variancia Uniforme(0, 10): 8.333333
+Variancia Poisson(4): 4.000000
+Variancia Binomial(10, 1.5) [invalido]: Parametro invalido
+=====Distribuições=====
+P Binomial(k=5, n=10, p=0.5): 0.246094
+P Geometrica(k=3, p=0.5): 0.062500
+P Poisson(k=2, lambda=4): 0.146525
+Densidade Uniforme(x=5, a=0, b=10): 0.100000
+P Binomial(k=5, n=10, p=1.5) [invalido]: Parametro invalido
+P Poisson(k=2, lambda=-1) [invalido]: Parametro invalido
+=====Covariância, Correlação e Coeficiente Linear de Regressão=====
+Covariância: 9.250000
+Covariância com n=0 [invalido]: N invalido
+Correlação: 0.968334
+Correlação com n=0 [invalido]: N invalido
+Coeficiente Linear de Regressão: 1.267123
+Coeficiente Linear de Regressão com n=0 [invalido]: N invalido
