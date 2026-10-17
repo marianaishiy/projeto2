@@ -1,4 +1,3 @@
-
 \documentclass[12pt,a4paper]{article}
 
 % ---------------------------------------------------------------
@@ -51,6 +50,18 @@
            {Â}{{\^A}}1 {Ê}{{\^E}}1 {Ô}{{\^O}}1 {Ã}{{\~A}}1 {Õ}{{\~O}}1
 }
 \lstset{style=c}
+
+% ---------------------------------------------------------------
+% Macros
+% ---------------------------------------------------------------
+% Marcador de pendência (oculto). Para exibir em vermelho no PDF, use:
+% \newcommand{\todo}[1]{\textcolor{red}{[PENDENTE: #1]}}
+\newcommand{\todo}[1]{}
+\newcommand{\cod}[1]{\texttt{#1}}
+% Saída de programa / código-fonte lidos de arquivo
+\newcommand{\saida}[1]{\lstinputlisting[style=shell]{#1}}
+\newcommand{\fonte}[1]{\lstinputlisting[style=c]{#1}}
+
 
 
 % ---------------------------------------------------------------
@@ -114,9 +125,9 @@ Integrante & Módulo & Frente extra \\
 \midrule
 Mariana Keiko Ishiy Corrêa & Esperança dos modelos & Makefile, bibliotecas \cod{.a} e \cod{.so} \\
 
-Maria Carolina Sobral Vila Nova de Carvalho Vieira & Variância dos modelos & Testes automatizados, aplicação cliente, README e montagem do relatório \\
-Eddy Rodrigues Sousa & Distribuições de probabilidade & Doxygen e depuração com GDB \\
-Luís Guilherme de Oliveira Pelucio & Covariância, correlação e regressão & Git (branches, merges, tag \cod{v1.0}) \\
+Maria Carolina Sobral Vila Nova de Carvalho Vieira & Variância dos modelos & Testes automatizados, aplicação cliente e README  \\
+Eddy Rodrigues Sousa & Distribuições de probabilidade & Doxygen e Relatório técnico \\
+Luís Guilherme de Oliveira Pelucio & Covariância, correlação e regressão & Git (branches, merges, tag \cod{v1.0}) e depuração com GDB \\
 \bottomrule
 \end{tabular}
 \caption{Divisão de tarefas do grupo.}
@@ -379,8 +390,258 @@ Chamada & Resultado \\
 
 % ---------------------------------------------------------------
 \subsection{Distribuições de probabilidade}
+\emergencystretch=3em
 % ---------------------------------------------------------------
-\todo{autor: C. Fórmulas, validações, convenção de $k$ na geométrica, exemplos}
+
+Este módulo calcula a função de probabilidade dos modelos discretos (Binomial,
+Geométrica e Poisson) e a função de densidade do modelo contínuo Uniforme. Os
+protótipos estão em \cod{include/distribuicoes.h} e a implementação em
+\cod{src/distribuicoes.c}.
+ 
+\subsubsection{Função de probabilidade e função de densidade}
+Os três modelos discretos retornam uma probabilidade pontual, $P(X = k)$. Já o
+modelo Uniforme é contínuo, e por isso \cod{densidade\_uniforme} retorna a
+densidade $f(x)$, que \textbf{não} é uma probabilidade pontual: em uma
+distribuição contínua, $P(X = x) = 0$ para qualquer $x$, e a probabilidade só
+faz sentido para intervalos, obtida pela integral da densidade. Por isso o valor
+de $f(x)$ pode, inclusive, ser maior que $1$ (por exemplo, $f(x) = 2$ em
+$[0, 0{,}5]$).
+ 
+\subsubsection{Fórmulas}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Modelo & Parâmetros & Função \\
+\midrule
+Binomial   & $n, p$      & $P(X = k) = \dbinom{n}{k}\,p^{k}\,(1-p)^{n-k}$ \\
+Geométrica & $p$         & $P(X = k) = p\,(1-p)^{k}$ \\
+Poisson    & $\lambda$   & $P(X = k) = \dfrac{e^{-\lambda}\,\lambda^{k}}{k!}$ \\
+Uniforme   & $a, b$      & $f(x) = \begin{cases}
+\dfrac{1}{b - a} & \text{se } a \le x \le b \\
+0 & \text{caso contrário}
+\end{cases}$ \\
+\bottomrule
+\end{tabular}
+\caption{Funções calculadas pelo módulo de distribuições.}
+\end{table}
+ 
+\paragraph{Definição da geométrica.} Foi adotada a definição em que $X$ é o
+número de \emph{fracassos antes do primeiro sucesso}, com $k = 0, 1, 2, \dots$
+Na definição alternativa (número de tentativas até o primeiro sucesso,
+$k = 1, 2, \dots$) a função seria $p\,(1-p)^{k-1}$. Essa escolha é a mesma nos módulos de esperança e variância
+   (ver Seção~11), pois a esperança muda entre as duas definições
+   ($(1-p)/p$ contra $1/p$).
+ 
+\paragraph{Cálculo numérico.} Para evitar estouro (\emph{overflow}), dois
+cálculos não usam o fatorial diretamente:
+\begin{itemize}
+  \item o coeficiente binomial $\binom{n}{k}$ é calculado de forma iterativa,
+        pela função auxiliar \cod{binomio}, sem calcular $n!$
+        (detalhada na Seção~\ref{sec:binomio});
+  \item na Poisson, o cálculo é feito em escala logarítmica:
+        $P(X = k) = \exp\bigl(-\lambda + k\ln\lambda - \ln(k!)\bigr)$,
+        onde $\ln(k!)$ é obtido por \cod{lgamma(k + 1)}.
+\end{itemize}
+ 
+\subsubsection{Cálculo do coeficiente binomial}
+\label{sec:binomio}
+O coeficiente $\binom{n}{k} = \dfrac{n!}{k!\,(n-k)!}$ não é calculado pela
+definição, porque $n!$ ultrapassa o limite de um \cod{double} já para
+$n$ próximo de $170$, mesmo quando o coeficiente em si é pequeno. A função
+auxiliar \cod{binomio} (declarada \cod{static}, portanto interna ao módulo)
+usa o produto
+\[
+  \binom{n}{k} = \prod_{i=1}^{k} \frac{n-k+i}{i}.
+\]
+ 
+\begin{lstlisting}
+static double binomio(double n, double k){
+  if (k > n - k) k = n - k;
+  double c = 1.0;
+  for (int i = 1; i <= k; i++) {
+    c = c * (n - k + i) / i;
+  }
+  return c;
+}
+\end{lstlisting}
+ 
+O funcionamento tem três ideias:
+\begin{enumerate}
+  \item \textbf{Simetria.} Como $\binom{n}{k} = \binom{n}{n-k}$, a linha
+        \cod{if (k > n - k) k = n - k;} troca $k$ pelo menor dos dois valores,
+        o que reduz o número de iterações para $\min(k, n-k)$.
+  \item \textbf{Invariante do laço.} Ao fim da iteração $i$, a variável
+        \cod{c} vale exatamente $\binom{n-k+i}{i}$, pois
+        $\binom{n-k+i}{i} = \binom{n-k+i-1}{i-1} \cdot \dfrac{n-k+i}{i}$.
+        Na última iteração ($i = k$), \cod{c} vale $\binom{n}{k}$.
+  \item \textbf{Multiplicar antes de dividir.} Em \cod{c * (n - k + i) / i}
+        a multiplicação é feita primeiro, e a divisão por $i$ é sempre exata,
+        já que o resultado é um coeficiente binomial inteiro. Isso evita
+        acumular erros de arredondamento.
+\end{enumerate}
+ 
+\paragraph{Exemplo: $\binom{10}{3}$.} Como $3 \le 10 - 3$, o valor de $k$ não
+muda, e o laço executa três iterações:
+\begin{center}
+\begin{tabular}{@{}cll@{}}
+\toprule
+$i$ & Conta & \cod{c} \\
+\midrule
+1 & $1 \cdot 8 / 1$  & $8 = \binom{8}{1}$ \\
+2 & $8 \cdot 9 / 2$  & $36 = \binom{9}{2}$ \\
+3 & $36 \cdot 10 / 3$ & $120 = \binom{10}{3}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Nenhum fatorial é calculado: o maior valor intermediário é o próprio resultado.
+ 
+\paragraph{Limitação.} O coeficiente em si ainda é um \cod{double}. Para $n$ da
+ordem de mil, $\binom{n}{k}$ pode ultrapassar o maior valor representável, e
+$p^k$ pode ficar abaixo do menor, de modo que o produto final deixa de ser
+confiável para $n$ muito grande. Isso está fora do escopo dos testes do
+projeto.
+ 
+\subsubsection{Assinaturas das funções utilizadas}
+\begin{lstlisting}
+double probabilidade_binomial(int k, int n, double p, int *erro);
+double probabilidade_geometrica(int k, double p, int *erro);
+double probabilidade_poisson(int k, double lambda, int *erro);
+double densidade_uniforme(double x, double a, double b, int *erro);
+\end{lstlisting}
+ 
+\subsubsection{Validações}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Função & Condição & Código de erro \\
+\midrule
+\cod{probabilidade\_binomial}   & $n \le 0$ ou $k < 0$  & \cod{ESTAT\_ERRO\_N\_INVALIDO} \\
+                                & $p < 0$ ou $p > 1$    & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\cod{probabilidade\_geometrica} & $k < 0$               & \cod{ESTAT\_ERRO\_N\_INVALIDO} \\
+                                & $p \le 0$ ou $p > 1$  & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\cod{probabilidade\_poisson}    & $k < 0$               & \cod{ESTAT\_ERRO\_N\_INVALIDO} \\
+                                & $\lambda \le 0$       & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\cod{densidade\_uniforme}       & $a \ge b$             & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\bottomrule
+\end{tabular}
+\caption{Validações de entrada do módulo de distribuições.}
+\end{table}
+ 
+\subsubsection{Decisões de projeto}
+Dois casos retornam $0{,}0$ \textbf{sem} sinalizar erro (\cod{ESTAT\_OK}),
+porque são matematicamente corretos:
+\begin{itemize}
+  \item \cod{probabilidade\_binomial} com $k > n$: não é possível obter mais
+        sucessos que tentativas, logo $P(X = k) = 0$;
+  \item \cod{densidade\_uniforme} com $x$ fora de $[a, b]$: a densidade é nula
+        fora do suporte da distribuição.
+\end{itemize}
+Essa decisão para a densidade uniforme era uma pendência registrada na
+arquitetura, e foi resolvida seguindo a sugestão do documento.
+Além disso, em \cod{probabilidade\_geometrica} o valor $p = 0$ é tratado como
+parâmetro fora do domínio ($0 < p \le 1$) e devolve
+\cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO}, pois a fórmula
+$p\,(1-p)^{k}$ não envolve divisão por $p$.
+ 
+\subsubsection{Exemplo de implementação}
+\begin{lstlisting}
+double probabilidade_poisson(int k, double lambda, int *erro){
+    if (k < 0) {
+        *erro = ESTAT_ERRO_N_INVALIDO;
+        return 0.0;
+    }
+    if (lambda <= 0) {
+        *erro = ESTAT_ERRO_PARAMETRO_INVALIDO;
+        return 0.0;
+    }
+ 
+    *erro = ESTAT_OK;
+    /* escala logaritmica evita overflow do fatorial */
+    return exp(-lambda + k * log(lambda) - lgamma(k + 1.0));
+}
+\end{lstlisting}
+ 
+\subsubsection{Exemplos numéricos}
+Os exemplos abaixo são os casos do teste automatizado
+\cod{test\_distribuicoes.c}, que contém 25 testes com \cod{assert}. Ele foi
+compilado junto com \cod{distribuicoes.c} e todos os testes passaram. Nas
+tabelas, o prefixo \cod{test\_probabilidade\_} dos nomes dos testes foi omitido
+por brevidade.
+
+\paragraph{Casos válidos.}
+\begin{table}[h]
+\centering
+\footnotesize
+\begin{tabular}{@{}lll@{}}
+\toprule
+Teste & Chamada & Resultado \\
+\midrule
+\scriptsize\cod{binomial\_valida}           & \cod{probabilidade\_binomial(1, 3, 0.5)}  & $0{,}375$ \\
+\scriptsize\cod{geometrica}                 & \cod{probabilidade\_geometrica(2, 0.5)}   & $0{,}125$ \\
+\scriptsize\cod{poisson}                    & \cod{probabilidade\_poisson(0, 2.0)}      & $e^{-2} \approx 0{,}1353$ \\
+\scriptsize\cod{densidade\_uniforme}        & \cod{densidade\_uniforme(1.0, 0.0, 4.0)}  & $0{,}25$ \\
+\scriptsize\cod{densidade\_uniforme}        & \cod{densidade\_uniforme(5.0, 0.0, 4.0)}  & $0$ ($x$ fora de $[a,b]$) \\
+\scriptsize\cod{binomial\_k\_maior\_que\_n} & \cod{probabilidade\_binomial(4, 3, 0.5)}  & $0$ ($k > n$, sem erro) \\
+\scriptsize\cod{binomial\_coeficiente}      & \cod{probabilidade\_binomial(3, 10, 0.5)} & $0{,}1172$ \\
+\scriptsize\cod{binomial\_coeficiente}      & \cod{probabilidade\_binomial(7, 10, 0.5)} & $0{,}1172$ ($k > n-k$) \\
+\scriptsize\cod{binomial\_p\_limites}       & \cod{probabilidade\_binomial(4, 4, 1.0)}  & $1$ ($p = 1$) \\
+\scriptsize\cod{binomial\_n\_grande}        & \cod{probabilidade\_binomial(100, 200, 0.5)} & $0{,}0563$ \\
+\scriptsize\cod{geometrica\_p\_um}          & \cod{probabilidade\_geometrica(0, 1.0)}   & $1$ ($p = 1$) \\
+\scriptsize\cod{poisson\_k\_positivo}       & \cod{probabilidade\_poisson(2, 3.0)}      & $0{,}2240$ \\
+\scriptsize\cod{poisson\_k\_grande}         & \cod{probabilidade\_poisson(200, 200.0)}  & $0{,}0282$ \\
+\scriptsize\cod{densidade\_uniforme\_extremos} & \cod{densidade\_uniforme(4.0, 0.0, 4.0)} & $0{,}25$ ($x = b$) \\
+\bottomrule
+\end{tabular}
+\caption{Casos válidos do teste automatizado, todos com \cod{ESTAT\_OK}.}
+\end{table}
+
+Conferência manual dos três primeiros: $\binom{3}{1}\,0{,}5^{1}\,0{,}5^{2} = 3 \cdot 0{,}125 = 0{,}375$;
+$0{,}5 \cdot 0{,}5^{2} = 0{,}125$; e, para $k = 0$, a Poisson se reduz a $e^{-\lambda}$.
+A densidade uniforme em $[0, 4]$ vale $1/(4-0) = 0{,}25$.
+
+\paragraph{Casos de erro.} Em todos eles o teste também confere que o valor
+retornado é $0{,}0$. Nos códigos de erro, o prefixo \cod{ESTAT\_ERRO\_} foi
+omitido.
+\begin{table}[h]
+\centering
+\footnotesize
+\begin{tabular}{@{}lll@{}}
+\toprule
+Teste & Chamada & Código de erro \\
+\midrule
+\scriptsize\cod{binomial\_n\_invalido}            & \cod{probabilidade\_binomial(1, -1, 1.0)} & \cod{N\_INVALIDO} \\
+\scriptsize\cod{binomial\_n\_zero}                & \cod{probabilidade\_binomial(0, 0, 0.5)}  & \cod{N\_INVALIDO} \\
+\scriptsize\cod{binomial\_k\_menor\_que\_zero}    & \cod{probabilidade\_binomial(-1, 3, 0.5)} & \cod{N\_INVALIDO} \\
+\scriptsize\cod{binomial\_p\_invalida}            & \cod{probabilidade\_binomial(1, 3, -1.0)} & \cod{PARAMETRO\_INVALIDO} \\
+\scriptsize\cod{binomial\_p\_maior\_que\_um}      & \cod{probabilidade\_binomial(1, 3, 1.5)}  & \cod{PARAMETRO\_INVALIDO} \\
+\scriptsize\cod{geometrica\_k\_invalido}          & \cod{probabilidade\_geometrica(-1, 0.5)}  & \cod{N\_INVALIDO} \\
+\scriptsize\cod{geometrica\_p\_invalida}          & \cod{probabilidade\_geometrica(2, -0.5)}  & \cod{PARAMETRO\_INVALIDO} \\
+\scriptsize\cod{geometrica\_p\_maior\_que\_um}    & \cod{probabilidade\_geometrica(2, 1.5)}   & \cod{PARAMETRO\_INVALIDO} \\
+\scriptsize\cod{geometrica}                       & \cod{probabilidade\_geometrica(0, 0.0)}   & \cod{PARAMETRO\_INVALIDO} \\
+\scriptsize\cod{poisson\_k\_invalido}             & \cod{probabilidade\_poisson(-1, 2.0)}     & \cod{N\_INVALIDO} \\
+\scriptsize\cod{poisson\_lambda\_invalido}        & \cod{probabilidade\_poisson(2, -1)}       & \cod{PARAMETRO\_INVALIDO} \\
+\scriptsize\cod{poisson\_lambda\_zero}            & \cod{probabilidade\_poisson(2, 0.0)}      & \cod{PARAMETRO\_INVALIDO} \\
+\scriptsize\cod{densidade\_uniforme\_a\_invalido} & \cod{densidade\_uniforme(1, 5, 3)}        & \cod{PARAMETRO\_INVALIDO} \\
+\scriptsize\cod{densidade\_uniforme\_a\_igual\_b} & \cod{densidade\_uniforme(2.0, 2.0, 2.0)}  & \cod{PARAMETRO\_INVALIDO} \\
+\bottomrule
+\end{tabular}
+\caption{Casos de erro do teste automatizado.}
+\end{table}
+
+\paragraph{Valores grandes.} Os testes \cod{binomial\_n\_grande} e
+\cod{poisson\_k\_grande} verificam o cálculo em casos em que a conta direta
+estouraria um \cod{double}: na binomial, $200!$ (da ordem de $10^{374}$); na
+Poisson com $k = 200$ e $\lambda = 200$, tanto $200!$ quanto $\lambda^{k}$ (da
+ordem de $10^{460}$) ultrapassam o maior valor representável, cerca de
+$1{,}8 \times 10^{308}$. O teste \cod{binomial\_coeficiente} também cobre o caso
+$k > n-k$, em que o \cod{binomio} troca $k$ por $n-k$. Todas as comparações com
+números em ponto flutuante usam a função \cod{aproximadamente} da
+Seção~5.1.
+
+\emergencystretch=0pt
 
 % ---------------------------------------------------------------
 \subsection{Covariância, correlação e regressão}
@@ -448,6 +709,23 @@ Poisson    & 2 & normal, $\lambda$ inválido \\
 \bottomrule
 \end{tabular}
 \caption{Testes de \cod{variancia\_modelos}.}
+\end{table}
+
+\subsubsection{Testes do módulo de distribuições}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llp{8cm}@{}}
+\toprule
+Função & Nº de testes & Casos cobertos \\
+\midrule
+Binomial   & 10 & normal, $n$ inválido, $n = 0$, $k < 0$, $k > n$, $p < 0$, $p > 1$, $p = 0$ e $p = 1$, coeficiente com $k > n-k$, $n$ grande \\
+Geométrica & 5  & normal (com $p = 0$ inválido), $k$ inválido, $p < 0$, $p > 1$, $p = 1$ \\
+Poisson    & 6  & normal ($k = 0$), $k$ inválido, $\lambda < 0$, $\lambda = 0$, $k > 0$, $k$ grande \\
+Uniforme   & 4  & normal (dentro e fora de $[a,b]$), $a > b$, $a = b$, extremos $x = a$ e $x = b$ \\
+\bottomrule
+\end{tabular}
+\caption{Testes de \cod{distribuicoes}.}
 \end{table}
 
 \subsection{Como executar}
@@ -626,20 +904,99 @@ Alternativamente, o caminho pode ser gravado no executável com
 % ===============================================================
 
 \subsection{Convenções de comentário}
-Todos os cabeçalhos usam \cod{@file}, \cod{@brief}, \cod{@param} (incluindo
-\cod{erro}) e \cod{@return}.
-
+Toda função pública é documentada no cabeçalho (\cod{.h}), e não no \cod{.c},
+porque é o cabeçalho que o Doxygen processa e que o usuário da biblioteca lê.
+Os comentários começam com \cod{/**} (dois asteriscos), que é o que os
+distingue de um comentário comum. Cada cabeçalho tem um bloco \cod{@file} com
+\cod{@brief} descrevendo o módulo, e cada função usa:
+\begin{itemize}[leftmargin=*]
+  \item \cod{@brief}: uma linha dizendo o que a função calcula;
+  \item \cod{@param}: um por parâmetro, com o mesmo nome da assinatura
+        (incluindo \cod{erro});
+  \item \cod{@return}: o valor devolvido, inclusive o que ocorre em caso de erro;
+  \item \cod{@note}: o código de erro associado a cada condição inválida.
+\end{itemize}
+Exemplo, retirado de \cod{include/distribuicoes.h}:
+\begin{lstlisting}[style=c]
+/**
+ * @brief Calcula P(X = k) para X ~ Binomial(n, p).
+ * @param k Quantidade de sucessos.
+ * @param n Quantidade de ensaios.
+ * @param p Probabilidade de sucesso em cada ensaio (0 <= p <= 1).
+ * @param erro Ponteiro onde o codigo de erro sera escrito (ESTAT_OK em sucesso).
+ * @return P(X = k), ou 0.0 em caso de erro. Retorna 0.0 valido se k > n.
+ * @note *erro = ESTAT_ERRO_N_INVALIDO se n <= 0 ou k < 0.
+ * @note *erro = ESTAT_ERRO_PARAMETRO_INVALIDO se p fora de [0,1].
+ */
+double probabilidade_binomial(int k, int n, double p, int *erro);
+\end{lstlisting}
+Os códigos de erro citados nos \cod{@note} são os da Seção~3.3.
+ 
 \subsection{Geração}
+A documentação é gerada a partir dos cabeçalhos de \cod{include/}, com o arquivo
+de configuração \cod{Doxyfile} da raiz do projeto, criado com \cod{doxygen -g}
+e ajustado pelo grupo (versão 1.18.0 do Doxygen):
 \begin{lstlisting}[style=shell]
 doxygen Doxyfile
+xdg-open docs/html/index.html
 \end{lstlisting}
-\todo{autor: C. Mostrar a página inicial e uma página de função no HTML}
+As opções alteradas em relação ao arquivo padrão são:
+\begin{itemize}[leftmargin=*]
+  \item \cod{PROJECT\_NAME = "lib\_estat"} e \cod{INPUT = include README.md}: apenas os
+        cabeçalhos públicos e o README são processados;
+  \item \cod{OUTPUT\_DIRECTORY = docs}: a saída HTML fica em \cod{docs/html};
+  \item \cod{OUTPUT\_LANGUAGE = Brazilian}: páginas em português;
+  \item \cod{OPTIMIZE\_OUTPUT\_FOR\_C = YES}: apresentação própria para C;
+  \item \cod{GENERATE\_TREEVIEW = YES}: menu lateral em árvore;
+  \item \cod{GENERATE\_LATEX = NO}: apenas a saída em HTML;
+  \item \cod{SHOW\_INCLUDE\_FILES = NO}: a lista de \cod{\#include} não aparece
+        no topo da página de cada arquivo;
+  \item \cod{EXTRACT\_ALL = YES}: o Doxygen documenta todos os elementos, mesmo
+        os que ainda não têm comentário.
+  \item \cod{USE\_MDFILE\_AS\_MAINPAGE = README.md}: o README é usado como página
+        principal da documentação;
+\end{itemize}
+O \cod{Doxyfile} é versionado, mas a pasta \cod{docs/html} é saída gerada e está
+no \cod{.gitignore}; qualquer integrante a reproduz com o comando acima.
+ 
+\begin{figure}[h]
+\centering
+\IfFileExists{doxygen_index.png}{%
+  \includegraphics[width=\linewidth]{doxygen_index.png}}{%
+  \fbox{\parbox{0.8\linewidth}{\centering [inserir captura: doxygen\_index.png]}}}
+\caption{Página inicial da documentação, gerada a partir do \cod{README.md}:
+introdução, tabela de módulos e menu lateral com as seções.}
+\end{figure}
+ 
+\begin{figure}[h]
+\centering
+\IfFileExists{doxygen_funcao.png}{%
+  \includegraphics[width=\linewidth]{doxygen_funcao.png}}{%
+  \fbox{\parbox{0.8\linewidth}{\centering [inserir captura: doxygen\_funcao.png]}}}
+\caption{Descrição de \cod{probabilidade\_binomial} na página de
+\cod{distribuicoes.h} gerada pelo Doxygen: parâmetros, retorno e notas.}
+\end{figure}
 
+ 
 \subsection{Verificação}
-A geração sobre o diretório \cod{include/} foi executada sem nenhum aviso de documentação
-(\cod{WARN\_IF\_UNDOCUMENTED}, \cod{WARN\_NO\_PARAMDOC} ativos). Durante essa
-verificação, foi detectada e corrigida uma declaração duplicada de
-\cod{variancia\_uniforme} no cabeçalho do módulo de variância.
+A geração sobre o diretório \cod{include/} processou os cinco cabeçalhos do
+projeto (\cod{correlacao.h}, \cod{distribuicoes.h}, \cod{erros.h},
+\cod{esperanca.h} e \cod{variancia\_modelos.h}) e terminou sem nenhum aviso, com
+\cod{WARN\_IF\_DOC\_ERROR} e \cod{WARN\_NO\_PARAMDOC} ativos. Isso garante que os
+\cod{@param} dos comentários existentes batem com os parâmetros reais das
+funções e que nenhum parâmetro documentado ficou sem descrição.
+ 
+Como o \cod{EXTRACT\_ALL} está ativo, o Doxygen não avisa sobre elementos sem
+comentário; por isso, a completude dos comentários (\cod{@brief}, \cod{@param},
+\cod{@return}) foi conferida também na leitura das páginas HTML geradas.
+ 
+Durante essa verificação, foi detectada e corrigida uma declaração duplicada de
+\cod{variancia\_uniforme} no cabeçalho do módulo de variância. Durante a
+geração também foi necessário corrigir duas linhas do \cod{Doxyfile} que tinham
+ficado com o valor inválido por erro em um comando \cod{sed}
+(\cod{WARN\_IF\_UNDOCUMENTED} e \cod{WARN\_NO\_PARAMDOC}); o Doxygen apontou o
+problema ao avisar que o argumento não era um valor booleano válido.
+
 
 % ===============================================================
 \section{Controle de Versão}
@@ -700,6 +1057,15 @@ Como melhorias futuras, a biblioteca poderia incluir novos modelos, como a Norma
 \fonte{../../src/variancia_modelos.c}
 
 \subsection{\cod{tests/test\_variancia\_modelos.c}}
+\fonte{../../tests/test_variancia_modelos.c}
+
+\subsection{\cod{include/distribuicoes.h}}
+\fonte{../../include/variancia_modelos.h}
+
+\subsection{\cod{src/distribuicoes.c}}
+\fonte{../../src/variancia_modelos.c}
+
+\subsection{\cod{tests/test\_distribuicoes.c}}
 \fonte{../../tests/test_variancia_modelos.c}
 
 \subsection{\cod{app/main.c}}
