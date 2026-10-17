@@ -1,18 +1,4 @@
 
-MacBook de Carol:), Conectado
-
-
-
-
-
-
-
-
-
-
-
-
-Readme · MD
 # lib_estat
 ## Introdução
 A biblioteca `lib_estat` é uma biblioteca em C criada para facilitar o cálculo de variáveis aleatórias e seus modelos de probabilidade, como o modelo de Poisson, o modelo Binomial, o modelo Uniforme e o modelo Geométrico. Além dos modelos, a biblioteca também calcula as estatísticas provenientes de cada modelo. A biblioteca contém 15 funções públicas, as quais estão distribuídas em 4 módulos.
