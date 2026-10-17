@@ -132,7 +132,7 @@ projeto2/
 |-- src/       (implementacoes .c)
 |-- tests/     (um test_*.c por modulo)
 |-- app/       (main.c da aplicacao cliente)
-|-- lib/       (liblib_estat.a e liblib_estat.so)
+|-- lib/       (libestat.a e libestat.so)
 |-- build/     (objetos .o)
 |-- bin/       (executaveis)
 |-- docs/      (Doxygen e evidencias do GDB)
@@ -208,8 +208,68 @@ Constante & Valor & Significado \\
 % ---------------------------------------------------------------
 \subsection{Esperança dos modelos}
 % ---------------------------------------------------------------
-\todo{autor: A. Fórmulas, assinaturas, validações e exemplos de cada função}
+\label{sec:esperanca}
+Este módulo calcula a esperança dos quatro modelos (geométrico, uniforme, binomial e Poisson). Os protótipos estão em
+\cod{include/esperanca.h} e a implementação em \cod{src/esperanca.c}.
 
+\subsubsection{Fórmulas}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Modelo & Parâmetros & Esperança \\
+\midrule
+Binomial   & $n, p$    & $E[X] = n\,p$ \\
+Geométrica & $p$       & $E[X] = \dfrac{1-p}{p}$ \\
+Uniforme   & $a, b$    & $E[X] = \dfrac{a+b}{2}$ \\
+Poisson    & $\lambda$ & $E[X] = \lambda$ \\
+\bottomrule
+\end{tabular}
+\caption{Esperança dos modelos implementados.}
+\end{table}
+
+\subsubsection{Assinaturas das funções utilizadas}
+\begin{lstlisting}
+double esperanca_binomial(int n, double p, int *erro);
+double esperanca_geometrica(double p, int *erro);
+double esperanca_uniforme(double a, double b, int *erro);
+double esperanca_poisson(double lambda, int *erro);
+\end{lstlisting}
+
+\subsubsection{Validações}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Função & Condição & Código de erro \\
+\midrule
+\cod{esperanca\_binomial}   & $n \le 0$          & \cod{ESTAT\_ERRO\_N\_INVALIDO} \\
+                            & $p < 0$ ou $p > 1$ & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\cod{esperanca\_geometrica} & $p < 0$ ou $p > 1$ & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+                            & $p = 0$            & \cod{ESTAT\_ERRO\_DIVISAO\_ZERO} \\
+\cod{esperanca\_uniforme}   & $a \ge b$          & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\cod{esperanca\_poisson}    & $\lambda \le 0$    & \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} \\
+\bottomrule
+\end{tabular}
+\caption{Validações de entrada do módulo de esperança.}
+\end{table}
+
+\subsubsection{Exemplos numéricos}
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+Chamada & Resultado \\
+\midrule
+\cod{esperanca\_binomial(10, 0.5)} & 5 \\
+\cod{esperanca\_geometrica(0.5)}   & 1 \\
+\cod{esperanca\_uniforme(5, 10)}   & 7,5 \\
+\cod{esperanca\_poisson(10)}       & 10 \\
+\bottomrule
+\end{tabular}
+\caption{Valores conferidos pelos testes e pela aplicação cliente.}
+\end{table}
 % ---------------------------------------------------------------
 \subsection{Variância dos modelos}
 \label{sec:variancia}
@@ -347,7 +407,7 @@ condição de erro, e (3) valores limite ($p = 0$, $p = 1$, $n = 0$ etc.).
 \toprule
 Módulo & Funções & Testes \\
 \midrule
-Esperança      & 4 & \todo{nº} \\
+Esperança      & 4 & 10 \\
 Variância      & 4 & 15 \\
 Distribuições  & 4 & \todo{nº} \\
 Correlação     & 3 & \todo{nº} \\
@@ -453,7 +513,7 @@ tratamento de erros (por exemplo, \cod{variancia\_binomial(10, 1.5)}).
 \todo{colar a saída completa do app, com a seção de correlação}
 
 \subsection{Versões estática e dinâmica}
-O uso e a compilação de bibliotecas estáticas e dinâmicas são demonstrados no \cod{Makefile}. A aplicação cliente é compilada duas vezes: uma com a biblioteca estática (\cod{liblib\_estat.a}) e outra com a biblioteca dinâmica (\cod{liblib\_estat.so}).
+O uso e a compilação de bibliotecas estáticas e dinâmicas são demonstrados no \cod{Makefile}. A aplicação cliente é compilada duas vezes: uma com a biblioteca estática (\cod{libestat.a}) e outra com a biblioteca dinâmica (\cod{libestat.so}).
 
 No executável compilado pela biblioteca estática, a biblioteca é incorporada ao executável durante a compilação da aplicação, assim permitindo que a biblioteca 
 não esteja disponível após a compilação.
@@ -469,28 +529,63 @@ Já as opções \cod{-L} e \cod{-l} são usadas apenas na compilação, para que
 % ===============================================================
 
 \subsection{Makefile}
-Alvos: \cod{all}, \cod{test}, \cod{run}, \cod{install}, \cod{clean}.
-\todo{autor: A. Descrever cada alvo e as variáveis (\cod{CC}, \cod{CFLAGS}, \cod{PREFIX})}
+O Makefile usa variáveis para os diretórios (\cod{SRC\_DIR}, \cod{BUILD\_DIR},
+\cod{LIB\_DIR}, \cod{BIN\_DIR}) e regras genéricas com \cod{wildcard} e
+\cod{\%}, tal que um novo arquivo em \cod{src/} ou \cod{tests/} é
+incluído sem precisar alterar o Makefile.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+Alvo & Função \\
+\midrule
+\cod{make}          & gera \cod{lib/libestat.a} e \cod{lib/libestat.so} \\
+\cod{make test}     & compila e executa os testes com a biblioteca estática \\
+\cod{make test-dyn} & compila e executa os testes com a biblioteca dinâmica \\
+\cod{make app}      & gera \cod{bin/app} (estático) \\
+\cod{make app-dyn}  & gera \cod{bin/app\_dyn} (dinâmico) \\
+\cod{make clean}    & remove os arquivos gerados \\
+\cod{make run}      & compila e executa \cod{bin/app} (estático) \\
+\cod{make run-dyn}  & compila e executa \cod{bin/app\_dyn} com \cod{LD\_LIBRARY\_PATH} \\
+\bottomrule
+\end{tabular}
+\caption{Alvos do Makefile.}
+\end{table}
 
 \subsection{Biblioteca estática e dinâmica}
 \begin{itemize}[leftmargin=*]
-  \item Estática: \cod{ar rcs lib/liblib\_estat.a build/*.o}.
-  \item Dinâmica: objetos com \cod{-fPIC} e \cod{gcc -shared}.
-  \item Ligação com \cod{-lm}.
+  \item Estática: os \cod{.c} viram objetos (\cod{.o}) e são empacotados com
+        \cod{ar rcs lib/libestat.a build/*.o}. O código usado é copiado para o
+        executável, que não depende da biblioteca na execução.
+  \item Dinâmica: os objetos são compilados com \cod{-fPIC} (código
+        independente de posição) e unidos com \cod{gcc -shared}. O executável
+        guarda só a referência, e a biblioteca é carregada na execução.
+  \item Ambas são ligadas com \cod{-lm}, colocado no final do comando por causa
+        da ordem de resolução dos símbolos.
 \end{itemize}
 
 \subsection{Compilação incremental}
-\todo{demonstrar: alterar um \cod{.c}, rodar \cod{make} e mostrar que só ele é recompilado}
-
-\subsection{Instalação}
+Como os objetos dependem do seu \cod{.c} e dos cabeçalhos, alterar um
+\cod{.c} recompila apenas ele e refaz as bibliotecas.
 \begin{lstlisting}[style=shell]
-make install PREFIX=/caminho/de/instalacao
+gcc -Wall -Wextra -Iinclude -c src/esperanca.c -o build/esperanca.o
+ar rcs lib/libestat.a build/correlacao.o build/distribuicoes.o ...
+gcc -Wall -Wextra -Iinclude -fPIC -c src/esperanca.c -o build/pic/esperanca.o
+gcc -shared build/pic/correlacao.o ... -o lib/libestat.so -lm
 \end{lstlisting}
-\todo{mostrar a árvore instalada}
 
 \subsection{Localização da biblioteca dinâmica}
-\todo{explicar o problema de o executável não achar a \cod{.so} e a solução usada:
-\cod{rpath} ou \cod{LD\_LIBRARY\_PATH}}
+Na ligação, \cod{-L} indica o diretório da biblioteca e \cod{-l} o seu nome
+(\cod{-lestat} procura \cod{libestat.so}). Porém, na execução o carregador
+não procura em \cod{lib/}, e o programa falha com erro de biblioteca não
+encontrada. A solução adotada é a variável de ambiente:
+\begin{lstlisting}[style=shell]
+LD_LIBRARY_PATH=lib ./bin/app_dyn
+\end{lstlisting}
+Alternativamente, o caminho pode ser gravado no executável com
+\cod{-Wl,-rpath}.
 
 % ===============================================================
 \section{Documentação com Doxygen}

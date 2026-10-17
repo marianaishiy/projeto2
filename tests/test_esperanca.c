@@ -58,17 +58,19 @@ void test_esperanca_binomial_valido(void) {
     printf("Passou em test_esperanca_binomial_valido.\n");
 }
 
+void test_esperanca_geometrica_divisao_zero(void) {
+    
+    int erro = ESTAT_OK;
+    double esperanca = esperanca_geometrica(0, &erro);
+    assert (erro == ESTAT_ERRO_DIVISAO_ZERO);
+    assert (esperanca == 0.0);
 
+}
 
 void test_esperanca_geometrica_parametro_invalido(void) {
 
     int erro = ESTAT_OK;
-    double esperanca = esperanca_geometrica(0, &erro);
-    assert (erro == ESTAT_ERRO_PARAMETRO_INVALIDO);
-    assert (esperanca == 0.0);
-
-    erro = ESTAT_OK;
-    esperanca = esperanca_geometrica(-1, &erro);
+    double esperanca = esperanca_geometrica(-1, &erro);
     assert(erro == ESTAT_ERRO_PARAMETRO_INVALIDO);
     assert(esperanca == 0.0);
 
@@ -85,12 +87,12 @@ void test_esperanca_geometrica_valido(void) {
     int erro = -1;
     double esperanca = esperanca_geometrica(0.5, &erro);
     assert (erro == ESTAT_OK);
-    assert (quase_igual(esperanca, 2));
+    assert (quase_igual(esperanca, 1));
 
     erro = -1;
     esperanca = esperanca_geometrica(1, &erro);
     assert (erro == ESTAT_OK);
-    assert (quase_igual(esperanca, 1));
+    assert (quase_igual(esperanca, 0.0));
 
     printf("Passou em test_esperanca_geometrica_valido.\n");
 
@@ -163,6 +165,7 @@ int main(void) {
     test_esperanca_binomial_valido();
 
     test_esperanca_geometrica_parametro_invalido();
+    test_esperanca_geometrica_divisao_zero();
     test_esperanca_geometrica_valido();
 
     test_esperanca_uniforme_parametro_invalido();

@@ -25,13 +25,17 @@ double esperanca_geometrica (double p, int *erro) {
 
     /* p é a probabilidade de sucesso*/
 
-    if (p <= 0 || p > 1) {
+    if (p < 0 || p > 1) {
         *erro = ESTAT_ERRO_PARAMETRO_INVALIDO;
+        return 0.0;
+    }
+    if(p == 0) {
+        *erro =  ESTAT_ERRO_DIVISAO_ZERO;
         return 0.0;
     }
 
     *erro = ESTAT_OK;
-    return 1/p;
+    return (1-p)/p;
 
 }
 
