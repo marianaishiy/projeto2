@@ -1,3 +1,4 @@
+
 \documentclass[12pt,a4paper]{article}
 
 % ---------------------------------------------------------------
@@ -16,17 +17,8 @@
 \usepackage{listings}
 \usepackage{enumitem}
 
-% ---------------------------------------------------------------
-% Marcador de pendência: aparece em vermelho no PDF.
-% Para achar tudo que falta:  grep -n "todo{" relatorio.tex
-% ---------------------------------------------------------------
-% Para voltar a mostrar as pendencias em vermelho, troque as duas linhas abaixo por:
-% \newcommand{\todo}[1]{\textcolor{red}{[PENDENTE: #1]}}
-\newcommand{\todo}[1]{}
 
-% ---------------------------------------------------------------
-% Código-fonte
-% ---------------------------------------------------------------
+
 \lstdefinestyle{c}{
   language=C,
   basicstyle=\ttfamily\small,
@@ -42,8 +34,11 @@
   literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
            {â}{{\^a}}1 {ê}{{\^e}}1 {ô}{{\^o}}1 {ã}{{\~a}}1 {õ}{{\~o}}1
            {ç}{{\c c}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Ç}{{\c C}}1
+           {à}{{\`a}}1 {À}{{\`A}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+           {Â}{{\^A}}1 {Ê}{{\^E}}1 {Ô}{{\^O}}1 {Ã}{{\~A}}1 {Õ}{{\~O}}1
 }
 \lstdefinestyle{shell}{
+  language={},
   basicstyle=\ttfamily\small,
   numbers=none,
   frame=single,
@@ -51,11 +46,12 @@
   showstringspaces=false,
   literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
            {â}{{\^a}}1 {ê}{{\^e}}1 {ô}{{\^o}}1 {ã}{{\~a}}1 {õ}{{\~o}}1
-           {ç}{{\c c}}1
+           {ç}{{\c c}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Ç}{{\c C}}1
+           {à}{{\`a}}1 {À}{{\`A}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+           {Â}{{\^A}}1 {Ê}{{\^E}}1 {Ô}{{\^O}}1 {Ã}{{\~A}}1 {Õ}{{\~O}}1
 }
 \lstset{style=c}
 
-\newcommand{\cod}[1]{\texttt{#1}}
 
 % ---------------------------------------------------------------
 % Capa
@@ -64,12 +60,12 @@
        \large Biblioteca Estatística em C para Variáveis Aleatórias\\[0.3em]
        \large Relatório Técnico}
 \author{
-  Integrante A \\
+  Mariana Keiko Ishiy Corrêa\\
   Maria Carolina Sobral Vila Nova de Carvalho Vieira \\
-  Integrante C \\
-  Integrante D
+  Eddy Rodrigues Sousa \\
+  Luís Guilherme de Oliveira Pelucio
 }
-% Para incluir disciplina e professor(a): \date{Disciplina, professor(a) \\ Outubro de 2026}
+
 \date{19 de outubro de 2026, Técnicas de Programação}
 
 
@@ -102,7 +98,8 @@ Resumo do que a biblioteca entrega: 15 funções públicas em 4 módulos, aplica
 cliente, Makefile, testes, documentação Doxygen e versão \cod{v1.0}.
 
 \subsection{Organização do relatório}
-\todo{um parágrafo apontando as seções seguintes}
+
+Este relatório descreve o desenvolvimento da biblioteca \cod{lib\_estat}. Primeiro são apresentadas a divisão de tarefas, a estrutura de diretórios, a arquitetura da biblioteca, o tratamento de erros e as decisões de projeto. Em seguida, cada um dos quatro módulos é descrito, e são apresentados os testes automatizados, a depuração com GDB e a aplicação cliente. Depois vêm a compilação das bibliotecas estática e dinâmica, a documentação com Doxygen e o controle de versão. O relatório termina com as dificuldades encontradas, a conclusão e os apêndices, que reúnem o código-fonte e as saídas completas.
 
 % ===============================================================
 \section{Organização do Grupo e do Projeto}
@@ -115,10 +112,11 @@ cliente, Makefile, testes, documentação Doxygen e versão \cod{v1.0}.
 \toprule
 Integrante & Módulo & Frente extra \\
 \midrule
-A & Esperança dos modelos & Makefile, bibliotecas \cod{.a} e \cod{.so} \\
-Maria Carolina Sobral Vila Nova de Carvalo Vieira & Variância dos modelos & Testes automatizados, GDB, aplicação cliente \\
-C & Distribuições de probabilidade & Relatório e Doxygen \\
-D & Covariância, correlação e regressão & Git (branches, merges, tag \cod{v1.0}) \\
+Mariana Keiko Ishiy Corrêa & Esperança dos modelos & Makefile, bibliotecas \cod{.a} e \cod{.so} \\
+
+Maria Carolina Sobral Vila Nova de Carvalho Vieira & Variância dos modelos & Testes automatizados, aplicação cliente, README e montagem do relatório \\
+Eddy Rodrigues Sousa & Distribuições de probabilidade & Doxygen e depuração com GDB \\
+Luís Guilherme de Oliveira Pelucio & Covariância, correlação e regressão & Git (branches, merges, tag \cod{v1.0}) \\
 \bottomrule
 \end{tabular}
 \caption{Divisão de tarefas do grupo.}
@@ -145,7 +143,21 @@ projeto2/
 % ===============================================================
 
 \subsection{Visão geral dos módulos}
-\todo{diagrama simples: cabeçalhos $\to$ implementações $\to$ biblioteca $\to$ aplicação}
+
+A construção do código foi feito em etapas, utilizanod cabeçalhos públicos.
+\begin{lstlisting}[style=shell]
+include/*.h   interfaces publicas (prototipos e comentarios Doxygen)
+     |
+src/*.c       implementacoes das funcoes
+     |
+build/*.o     objetos (build/pic/*.o para a versao dinamica)
+     |
+lib/          libestat.a (estatica) e libestat.so (dinamica)
+     |
+app/main.c, tests/*.c    programas que usam a biblioteca
+     |
+bin/          executaveis (app, app_dyn, test_*)
+\end{lstlisting}
 
 \subsection{Funções públicas}
 \begin{table}[h]
@@ -181,24 +193,28 @@ Constante & Valor & Significado \\
 \midrule
 \cod{ESTAT\_OK} & 0 & Sem erro \\
 \cod{ESTAT\_ERRO\_N\_INVALIDO} & 1 & Tamanho $n$ inválido (por exemplo, $n \le 0$) \\
-\cod{ESTAT\_ERRO\_TAMANHOS\_DIFERENTES} & 2 & Vetores de tamanhos diferentes \\
-\cod{ESTAT\_ERRO\_DIVISAO\_ZERO} & 3 & Divisão por zero \\
-\cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} & 4 & Parâmetro fora do domínio \\
+\cod{ESTAT\_ERRO\_TAMANHOS\_DIFERENTES} & 2 & Vetores de tamanhos diferentes (reservado: nenhuma função o utiliza) \\
+\cod{ESTAT\_ERRO\_DIVISAO\_ZERO} & 3 & Divisão por zero (por exemplo, $p = 0$ na geométrica) \\
+\cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO} & 4 & Parâmetro fora do domínio (por exemplo, $p \notin [0,1]$, $a \ge b$ ou vetor \cod{NULL}) \\
 \bottomrule
 \end{tabular}
 \caption{Códigos de erro da biblioteca.}
 \end{table}
 
+
+O ponteiro \cod{erro} não pode ser \cod{NULL}, com uma exceção: as funções do módulo de correlação aceitam \cod{erro == NULL}, caso em que nenhum código de erro é armazenado. 
+Nesse módulo, um vetor \cod{NULL} resulta em \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO}.
+
 \subsection{Decisões de projeto}
 \begin{itemize}[leftmargin=*]
   \item Erro via parâmetro \cod{int *erro} (e não via \cod{errno} ou \cod{exit}),
-        para que a biblioteca nunca encerre o programa do usuário.
-        \todo{incluir a justificativa discutida na reunião}
+        para que a biblioteca nunca encerre o programa do usuário, uma vez que a biblioteca é uma ferramenta de apoio, e não um programa completo.
+
   \item Cabeçalhos independentes, cada um incluindo apenas \cod{erros.h}.
   \item Convenção da distribuição geométrica: $k = 0, 1, 2, \ldots$ (número de falhas até o primeiro sucesso).
-  Uma vez que há uma variação em cada representação da distribuição geométrica, decidimos adotar a convenção de $k$ como o número de falhas até o primeiro sucesso, que é a forma mais comum e intuitiva, no estudo de variáveis aleatórias.
-  \item Tratamento de $p = 0$ na geométrica:
-        \todo{registrar o código de erro padronizado entre Esperança e Variância}
+  Uma vez que há uma variação em cada representação da distribuição geométrica, decidimos adotar a convenção de $k$ como o número de falhas até o primeiro sucesso, que é a forma mais intuitiva, no estudo de variáveis aleatórias.
+ 
+  \item Tratamento de $p = 0$ na geométrica: tanto \cod{esperanca\_geometrica} quanto \cod{variancia\_geometrica} devolvem \cod{ESTAT\_ERRO\_DIVISAO\_ZERO}, pois as fórmulas $(1-p)/p$ e $(1-p)/p^{2}$ dividem por $p$. Valores de $p$ fora de $[0,1]$ resultam em \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO}.
 \end{itemize}
 
 % ===============================================================
@@ -360,10 +376,6 @@ Chamada & Resultado \\
 \caption{Valores conferidos manualmente e pela aplicação cliente.}
 \end{table}
 
-\subsubsection{Inconsistência identificada}
-Para $p = 0$, \cod{variancia\_geometrica} devolve \cod{ESTAT\_ERRO\_DIVISAO\_ZERO},
-enquanto \cod{esperanca\_geometrica} devolve \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO}.
-Com isso, o grupo decidiu padronizar o erro para \cod{ESTAT\_ERRO\_DIVISAO\_ZERO} em ambos os casos.
 
 % ---------------------------------------------------------------
 \subsection{Distribuições de probabilidade}
@@ -391,8 +403,9 @@ Escolheu-se \cod{assert} por ser simples, confiável e amplamente usado, e não 
 Também utilizou-se a função \cod{aproximadamente} para comparar os números double e evitar problemas de arredondamento que podem ocorrer 
 ao longo do código.
 
-Cada módulo tem um arquivo \cod{tests/test\_<modulo>.c}, e cada teste informa
-no terminal o seu nome quando passa.
+
+Cada módulo tem um arquivo \cod{tests/test\_<modulo>.c}. Quando um teste passa, o programa imprime uma mensagem no terminal (no módulo de correlação, uma por grupo de testes). 
+Quando um teste falha, o \cod{assert} aborta o programa e o \cod{make} interrompe a execução.
 
 
 \subsection{Estratégia de casos}
@@ -409,14 +422,16 @@ Módulo & Funções & Testes \\
 \midrule
 Esperança      & 4 & 10 \\
 Variância      & 4 & 15 \\
-Distribuições  & 4 & \todo{nº} \\
-Correlação     & 3 & \todo{nº} \\
+Distribuições  & 4 & 25 \\
+Correlação     & 3 & 16 \\
 \midrule
-Total          & 15 & \todo{soma} \\
+Total          & 15 & 71 \\
 \bottomrule
 \end{tabular}
 \caption{Cobertura dos testes por módulo.}
 \end{table}
+
+Nesta tabela, cada função de teste dos arquivos \cod{tests/test\_*.c} conta como um teste.
 
 \subsubsection{Testes do módulo de variância}
 \begin{table}[h]
@@ -439,7 +454,8 @@ Poisson    & 2 & normal, $\lambda$ inválido \\
 \begin{lstlisting}[style=shell]
 make test
 \end{lstlisting}
-\todo{incluir a saída real do \cod{make test} com todos os módulos passando}
+A saída abaixo foi obtida com todos os módulos passando (arquivo \cod{saida\_test.txt}, gerado por \cod{make -s test}):
+\saida{saida_test.txt}
 
 % ===============================================================
 \section{Depuração com GDB}
@@ -471,7 +487,8 @@ $7{,}5$.
 \toprule
 Comando & Objetivo \\
 \midrule
-\cod{gdb ./bin/test\_variancia}        & abrir o executável compilado com \cod{-g} \\
+
+\cod{gdb ./bin/test\_variancia\_modelos} & abrir o executável compilado com \cod{-g} \\
 \cod{break variancia\_binomial}         & parar na função suspeita \\
 \cod{run}                               & executar até o ponto de parada \\
 \cod{info args}                         & ver $n$ e $p$ recebidos \\
@@ -510,19 +527,36 @@ Cada demonstração inclui chamadas com argumentos inválidos para mostrar o
 tratamento de erros (por exemplo, \cod{variancia\_binomial(10, 1.5)}).
 
 \subsection{Saída da aplicação}
-\todo{colar a saída completa do app, com a seção de correlação}
+A execução de \cod{./bin/app} produz a saída abaixo (arquivo \cod{saida\_app.txt}):
+\saida{saida_app.txt}
 
 \subsection{Versões estática e dinâmica}
 O uso e a compilação de bibliotecas estáticas e dinâmicas são demonstrados no \cod{Makefile}. A aplicação cliente é compilada duas vezes: uma com a biblioteca estática (\cod{libestat.a}) e outra com a biblioteca dinâmica (\cod{libestat.so}).
 
-No executável compilado pela biblioteca estática, a biblioteca é incorporada ao executável durante a compilação da aplicação, assim permitindo que a biblioteca 
-não esteja disponível após a compilação.
+No executável compilado pela biblioteca estática, a biblioteca é incorporada ao executável durante a compilação da aplicação, assim permitindo que a biblioteca seja utilizada mesmo que não esteja presente no sistema do usuário.
 
 No executável compilado pela biblioteca dinâmica, o código não é incorporado: o executável guarda apenas a referência à biblioteca, e o carregador dinâmico a procura quando o programa é executado. 
 Se ele não a encontrar, ocorre um erro de carregamento da biblioteca. Para evitar isso, a pasta onde ela está pode ser indicada pela variável de ambiente \cod{LD\_LIBRARY\_PATH} ou gravada no próprio executável
 na hora da ligação, com a opção \cod{-Wl,-rpath}. 
 Já as opções \cod{-L} e \cod{-l} são usadas apenas na compilação, para que o linker localize a biblioteca.
-\todo{nomes dos executáveis, solução adotada pelo grupo (\cod{LD\_LIBRARY\_PATH} ou \cod{rpath}), mensagem de erro real e saída do \cod{ldd}}
+
+
+Os executáveis gerados são \cod{bin/app} (estático) e \cod{bin/app\_dyn} (dinâmico), e a solução adotada pelo grupo é a variável \cod{LD\_LIBRARY\_PATH=lib}. A parte dinâmica foi verificada em Linux, e não no macOS. Sem a variável, o \cod{ldd} não encontra a biblioteca e a execução falha. Com a variável, o \cod{ldd} a localiza em \cod{lib/} (trecho relevante da saída):
+\begin{lstlisting}[style=shell]
+$ ldd bin/app_dyn
+        libestat.so => not found
+        libm.so.6 => /lib64/libm.so.6
+        libc.so.6 => /lib64/libc.so.6
+
+$ LD_LIBRARY_PATH=lib ldd bin/app_dyn
+        libestat.so => lib/libestat.so
+        libm.so.6 => /lib64/libm.so.6
+        libc.so.6 => /lib64/libc.so.6
+
+$ ./bin/app_dyn
+./bin/app_dyn: error while loading shared libraries: libestat.so: cannot open shared object file: No such file or directory
+\end{lstlisting}
+
 
 % ===============================================================
 \section{Compilação e Distribuição}
@@ -602,7 +636,7 @@ doxygen Doxyfile
 \todo{autor: C. Mostrar a página inicial e uma página de função no HTML}
 
 \subsection{Verificação}
-A geração sobre o diretório \cod{include/} foi executada sem nenhum aviso
+A geração sobre o diretório \cod{include/} foi executada sem nenhum aviso de documentação
 (\cod{WARN\_IF\_UNDOCUMENTED}, \cod{WARN\_NO\_PARAMDOC} ativos). Durante essa
 verificação, foi detectada e corrigida uma declaração duplicada de
 \cod{variancia\_uniforme} no cabeçalho do módulo de variância.
@@ -634,10 +668,13 @@ verificação, foi detectada e corrigida uma declaração duplicada de
 \toprule
 Dificuldade & Solução \\
 \midrule
-Convenção da geométrica diferente entre módulos & \todo{decisão final} \\
+Convenção da geométrica diferente entre módulos & 
+A esperança usava $1/p$ (número de tentativas), divergindo dos demais módulos (número de falhas), e $p = 0$ gerava códigos de erro diferentes. O grupo adotou $k$ como número de falhas ($E[X]=(1-p)/p$) e \cod{ESTAT\_ERRO\_DIVISAO\_ZERO} para $p = 0$ em ambos os módulos. A correção foi aplicada à esperança (commit \cod{1ba33a9}). \\
 Declaração duplicada no cabeçalho de variância & Detectada pelo Doxygen e removida \\
-GDB indisponível no macOS com chip Apple & Sessão feita em máquina Linux; ensaio prévio com \cod{lldb} \\
-\todo{outras} & \todo{} \\
+GDB indisponível no macOS com chip Apple & 
+Sessão feita em máquina Linux; ensaio prévio com \cod{lldb} \\
+Nome da biblioteca gerada (\cod{liblib\_estat}), com o prefixo \cod{lib} duplicado & Corrigido no Makefile (\cod{LIB\_NAME = estat}), que passou a gerar \cod{libestat.a} e \cod{libestat.so} \\
+Biblioteca dinâmica não encontrada na execução & Uso de \cod{LD\_LIBRARY\_PATH=lib} (alternativa: \cod{-Wl,-rpath}) \\
 \bottomrule
 \end{tabular}
 \caption{Principais problemas encontrados.}
@@ -646,29 +683,35 @@ GDB indisponível no macOS com chip Apple & Sessão feita em máquina Linux; ens
 % ===============================================================
 \section{Conclusão}
 % ===============================================================
-\todo{o que foi entregue frente ao enunciado, o que o grupo aprendeu e
-melhorias futuras (por exemplo, mais modelos como Normal e Exponencial)}
+O projeto entregou uma biblioteca em C com 15 funções públicas distribuídas em quatro módulos (esperança, variância, distribuições de probabilidade e correlação), com tratamento de erros padronizado pelo parâmetro \cod{int *erro}. 
+Também foram entregues as versões estática (\cod{libestat.a}) e dinâmica (\cod{libestat.so}), geradas por um Makefile, os testes automatizados de todos os módulos, uma aplicação cliente que demonstra o uso das funções e a documentação gerada com Doxygen.
+
+Durante o trabalho, o grupo aprendeu a padronizar convenções entre módulos (como a da distribuição geométrica e o código de erro para $p = 0$), a comparar números em ponto flutuante com tolerância, a diferença entre ligação estática e dinâmica e a usar branches para integrar o trabalho de várias pessoas. 
+Como melhorias futuras, a biblioteca poderia incluir novos modelos, como a Normal e a Exponencial, e a parte dinâmica poderia ser validada também no macOS.
 
 % ===============================================================
 \appendix
 \section{Código-fonte}
 % ===============================================================
 \subsection{\cod{include/variancia\_modelos.h}}
-\todo{\cod{\textbackslash lstinputlisting[style=c]\{include/variancia\_modelos.h\}}}
+\fonte{../../include/variancia_modelos.h}
 
 \subsection{\cod{src/variancia\_modelos.c}}
-\todo{\cod{\textbackslash lstinputlisting[style=c]\{src/variancia\_modelos.c\}}}
+\fonte{../../src/variancia_modelos.c}
 
 \subsection{\cod{tests/test\_variancia\_modelos.c}}
-\todo{\cod{\textbackslash lstinputlisting[style=c]\{tests/test\_variancia\_modelos.c\}}}
+\fonte{../../tests/test_variancia_modelos.c}
 
 \subsection{\cod{app/main.c}}
-\todo{\cod{\textbackslash lstinputlisting[style=c]\{app/main.c\}}}
+\fonte{../../app/main.c}
 
 \section{Saídas completas}
-\todo{\cod{make test} e \cod{make run}}
+
+As saídas completas do \cod{make test} e da aplicação cliente estão nas seções \emph{Testes Automatizados} e \emph{Aplicação Cliente}.
 
 \section{README}
-\todo{referência ao \cod{README.md} do repositório}
+
+O repositório contém um \cod{README.md} na raiz, com a introdução, as instruções de compilação, execução e testes, a convenção de erros e um exemplo de uso. 
+Ele também é usado como página principal da documentação gerada pelo Doxygen.
 
 \end{document}
