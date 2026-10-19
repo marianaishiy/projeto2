@@ -8,6 +8,7 @@ LIB_NAME = estat
 INCLUDE_DIR = include
 TEST_DIR = tests
 APP_DIR = app
+PREFIX ?= $(HOME)/.local
 
 STATIC_LIB = $(LIB_DIR)/lib$(LIB_NAME).a
 SHARED_LIB = $(LIB_DIR)/lib$(LIB_NAME).so
@@ -68,10 +69,16 @@ app: $(BIN_DIR)/app
 
 app-dyn: $(BIN_DIR)/app_dyn
 
-.PHONY: all clean test test-dyn app app-dyn run run-dyn
+.PHONY: all clean test test-dyn app app-dyn run run-dyn install
 
 run: $(BIN_DIR)/app
 	./$(BIN_DIR)/app
 
 run-dyn: $(BIN_DIR)/app_dyn
 	LD_LIBRARY_PATH=$(LIB_DIR) ./$(BIN_DIR)/app_dyn
+
+install: $(STATIC_LIB) $(SHARED_LIB)
+	install	-d "$(PREFIX)/lib" "$(PREFIX)/include"
+	install	-m 644 "$(STATIC_LIB)" "$(PREFIX)/lib/"
+	install	-m 755 "$(SHARED_LIB)" "$(PREFIX)/lib/"
+	install	-m 644 $(HEADERS) "$(PREFIX)/include/"
