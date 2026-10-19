@@ -646,7 +646,204 @@ Seção~5.1.
 % ---------------------------------------------------------------
 \subsection{Covariância, correlação e regressão}
 % ---------------------------------------------------------------
-\todo{autor: D. Fórmulas, vetores de tamanhos diferentes, desvio padrão zero, exemplos}
+
+O módulo de correlação foi desenvolvido para analisar a relação linear entre
+duas variáveis a partir de amostras de dados observados. Diferentemente dos
+módulos de esperança, variância e distribuições, que utilizam parâmetros
+de modelos probabilísticos teóricos, este módulo recebe dois vetores de
+valores reais e realiza os cálculos diretamente sobre as observações.
+
+A implementação está localizada em \cod{src/correlacao.c}, com interface
+pública definida em \cod{include/correlacao.h}. Foram implementadas três
+funções: covariância amostral, correlação de Pearson e coeficiente angular
+da regressão linear simples.
+
+\subsubsection{Covariância amostral}
+
+A covariância mede como duas variáveis variam conjuntamente. Valores
+positivos indicam que as variáveis tendem a crescer ou diminuir juntas,
+enquanto valores negativos indicam uma tendência de variação em sentidos
+opostos.
+
+A fórmula utilizada é:
+
+\begin{equation}
+S_{xy} =
+\frac{1}{n-1}
+\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y}),
+\end{equation}
+
+em que $\bar{x}$ e $\bar{y}$ representam as médias das amostras e
+$n$ é a quantidade de observações.
+
+A implementação percorre inicialmente os vetores para calcular as médias.
+Em seguida, realiza uma segunda passagem para somar os produtos dos
+desvios em relação às médias. O resultado é dividido por $n-1$,
+correspondendo à covariância amostral.
+
+\subsubsection{Correlação de Pearson}
+
+O coeficiente de correlação de Pearson mede a intensidade e a direção
+da relação linear entre duas variáveis.
+
+Seu valor varia entre $-1$ e $1$:
+\begin{itemize}
+    \item $r = 1$: correlação linear positiva perfeita;
+    \item $r = -1$: correlação linear negativa perfeita;
+    \item $r = 0$: ausência de correlação linear.
+\end{itemize}
+
+O cálculo é realizado pela fórmula:
+
+\begin{equation}
+r =
+\frac{
+\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y})
+}{
+\sqrt{\sum_{i=1}^{n}(x_i-\bar{x})^2}
+\sqrt{\sum_{i=1}^{n}(y_i-\bar{y})^2}
+}.
+\end{equation}
+
+A implementação calcula as médias das duas amostras e, posteriormente,
+a soma dos produtos dos desvios e as somas dos quadrados dos desvios
+de cada variável.
+
+Caso uma das amostras apresente variância nula, a correlação não pode
+ser calculada, pois o denominador da expressão seria zero. Nessa
+situação, a função retorna \cod{ESTAT\_ERRO\_DIVISAO\_ZERO}.
+
+\subsubsection{Regressão linear simples}
+
+A terceira função calcula o coeficiente angular da reta de regressão
+linear simples pelo método dos mínimos quadrados.
+
+A reta pode ser representada por:
+
+\begin{equation}
+y = ax + b,
+\end{equation}
+
+em que $a$ representa o coeficiente angular, responsável pela inclinação
+da reta, e $b$ representa o coeficiente linear, ou intercepto.
+
+Conforme a convenção definida pelo grupo, a função
+\cod{coeficiente\_linear\_regressao} retorna o coeficiente angular $a$,
+calculado por:
+
+\begin{equation}
+a =
+\frac{
+\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y})
+}{
+\sum_{i=1}^{n}(x_i-\bar{x})^2
+}.
+\end{equation}
+
+Nesse cálculo, a variável X é considerada independente e Y é a
+variável dependente.
+
+Quando todos os valores de X são iguais, o denominador é zero e
+não é possível determinar um coeficiente angular único. Nesse caso,
+a função sinaliza \cod{ESTAT\_ERRO\_DIVISAO\_ZERO}.
+
+\subsubsection{Interface pública}
+
+As três funções possuem as seguintes assinaturas:
+
+\begin{lstlisting}
+double covariancia(
+    double amostra_x[],
+    double amostra_y[],
+    int n,
+    int *erro
+);
+
+double correlacao(
+    double amostra_x[],
+    double amostra_y[],
+    int n,
+    int *erro
+);
+
+double coeficiente_linear_regressao(
+    double amostra_x[],
+    double amostra_y[],
+    int n,
+    int *erro
+);
+\end{lstlisting}
+
+Os parâmetros \cod{amostra\_x} e \cod{amostra\_y} representam os
+vetores de observações. O parâmetro \cod{n} indica a quantidade de
+elementos considerada em cada vetor, enquanto \cod{erro} permite
+informar o resultado da validação dos parâmetros.
+
+\subsubsection{Tratamento de erros}
+
+O módulo utiliza os códigos padronizados definidos em
+\cod{include/erros.h}.
+
+As principais validações implementadas são:
+
+\begin{itemize}
+    \item Para $n \leq 1$, é retornado
+    \cod{ESTAT\_ERRO\_N\_INVALIDO}.
+
+    \item Se algum vetor recebido for \cod{NULL}, é retornado
+    \cod{ESTAT\_ERRO\_PARAMETRO\_INVALIDO}.
+
+    \item Na correlação de Pearson, variância nula em qualquer
+    uma das amostras resulta em
+    \cod{ESTAT\_ERRO\_DIVISAO\_ZERO}.
+
+    \item Na regressão linear, variância nula da amostra X resulta
+    em \cod{ESTAT\_ERRO\_DIVISAO\_ZERO}.
+\end{itemize}
+
+Em caso de erro, as funções retornam $0{,}0$ e registram o código
+correspondente por meio do ponteiro \cod{erro}, quando ele não é
+\cod{NULL}. Em operações bem-sucedidas, esse código é
+\cod{ESTAT\_OK}.
+
+Como o valor $0{,}0$ também pode representar um resultado matemático
+válido, é necessário consultar o código de erro para distinguir um
+resultado legítimo de uma falha.
+
+A interface utiliza apenas um parâmetro \cod{n} para os dois vetores.
+Portanto, cabe ao programa cliente garantir que ambos contenham pelo
+menos $n$ elementos. A função não consegue identificar automaticamente
+vetores de tamanhos diferentes, pois a linguagem C não disponibiliza
+seus comprimentos por meio desses parâmetros.
+
+\subsubsection{Exemplo numérico}
+
+Para demonstrar o funcionamento das três funções, foram utilizadas
+as seguintes amostras:
+
+\begin{equation}
+X = \{1,2,3\},
+\qquad
+Y = \{3,5,7\}.
+\end{equation}
+
+As médias são $\bar{x}=2$ e $\bar{y}=5$.
+
+Aplicando as fórmulas anteriores, obtemos:
+
+\begin{align}
+S_{xy} &= \frac{4}{3-1} = 2,\\
+r &= \frac{4}{\sqrt{2}\sqrt{8}} = 1,\\
+a &= \frac{4}{2} = 2.
+\end{align}
+
+Os resultados correspondem, respectivamente, à covariância amostral,
+à correlação positiva perfeita e ao coeficiente angular da reta
+$y=2x+1$.
+
+Esses valores foram utilizados na verificação inicial do módulo e
+posteriormente complementados pelos testes automatizados, incluindo
+casos válidos, limites e entradas inválidas.
 
 % ===============================================================
 \section{Testes Automatizados}
@@ -692,7 +889,10 @@ Total          & 15 & 71 \\
 \caption{Cobertura dos testes por módulo.}
 \end{table}
 
-Nesta tabela, cada função de teste dos arquivos \cod{tests/test\_*.c} conta como um teste.
+Nesta tabela, a coluna de testes representa os cenários verificados,
+que podem estar agrupados em uma mesma função de teste.
+No módulo de correlação, os 16 cenários são organizados em
+três funções auxiliares.
 
 \subsubsection{Testes do módulo de variância}
 \begin{table}[h]
@@ -728,6 +928,83 @@ Uniforme   & 4  & normal (dentro e fora de $[a,b]$), $a > b$, $a = b$, extremos 
 \caption{Testes de \cod{distribuicoes}.}
 \end{table}
 
+\subsubsection{Testes do módulo de correlação}
+
+Os testes do módulo estão implementados no arquivo
+\cod{tests/test\_correlacao.c}. Foram elaborados 16 cenários de teste,
+organizados em três funções auxiliares:
+\cod{testar\_covariancia}, \cod{testar\_correlacao} e
+\cod{testar\_regressao}.
+
+Os testes verificam tanto a exatidão dos resultados matemáticos
+quanto o tratamento de entradas inválidas e situações em que
+os cálculos não estão definidos.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lcp{8cm}@{}}
+\toprule
+Função & Casos & Situações verificadas \\
+\midrule
+Covariância & 4 &
+Covariância positiva ($2$), negativa ($-2$),
+tamanho inválido ($n=1$) e vetor nulo. \\
+
+Correlação & 6 &
+Correlação positiva perfeita ($1$), negativa
+perfeita ($-1$), variância zero em X, variância
+zero em Y, tamanho inválido ($n=0$) e vetor nulo. \\
+
+Regressão linear & 6 &
+Coeficiente angular positivo ($2$), negativo
+($-2$), coeficiente angular zero válido,
+variância zero em X, tamanho inválido ($n=1$)
+e vetor nulo. \\
+\midrule
+Total & 16 & \\
+\bottomrule
+\end{tabular}
+\caption{Casos de teste do módulo de correlação.}
+\end{table}
+
+Para os casos válidos, foram utilizadas amostras com
+resultados matemáticos conhecidos, como
+$X=\{1,2,3\}$, $Y=\{3,5,7\}$ e
+$Y'=\{7,5,3\}$.
+
+A comparação entre resultados esperados e obtidos utiliza
+uma tolerância numérica de $10^{-9}$, evitando falhas
+causadas por pequenas diferenças de representação
+em ponto flutuante.
+
+\begin{lstlisting}
+static void verificar_resultado(
+    double obtido, double esperado
+) {
+    assert(fabs(obtido - esperado) < 1e-9);
+}
+\end{lstlisting}
+
+Além do valor numérico retornado, cada cenário verifica
+o código de erro produzido pela função. Nos casos válidos,
+é esperado \cod{ESTAT\_OK}. Nos casos inválidos, são
+verificados os códigos correspondentes a tamanho inválido,
+parâmetro inválido ou divisão por zero.
+
+Um caso importante é a regressão com valores constantes
+na variável Y. Nessa situação, o coeficiente angular
+é igual a zero e o resultado é válido, desde que haja
+variação na variável X.
+
+Por outro lado, quando X é constante, a regressão não
+possui coeficiente angular único e deve sinalizar
+\cod{ESTAT\_ERRO\_DIVISAO\_ZERO}.
+
+Os testes utilizam \cod{assert} para interromper
+a execução quando uma verificação falha. Ao concluir
+cada grupo de verificações, o programa imprime uma
+mensagem de sucesso no terminal.
 \subsection{Como executar}
 \begin{lstlisting}[style=shell]
 make test
@@ -786,6 +1063,126 @@ Comando & Objetivo \\
 \subsection{Lições}
 \todo{2 ou 3 frases sobre o que o depurador mostrou que a mensagem do
 \cod{assert} sozinha não mostrava}
+
+% ---------------------------------------------------------------
+\subsection{Inspeção da correlação de Pearson com GDB}
+% ---------------------------------------------------------------
+
+Além do cenário de depuração descrito anteriormente,
+foi realizada uma sessão de inspeção da função
+\cod{correlacao}, implementada no módulo
+\cod{src/correlacao.c}.
+
+O objetivo foi acompanhar os cálculos intermediários da
+correlação de Pearson, verificar os valores das variáveis
+locais e confirmar a correção do resultado retornado.
+
+Para permitir a inspeção das variáveis, o executável
+de testes foi compilado com informações de depuração
+(\cod{-g}) e sem otimizações (\cod{-O0}):
+
+\begin{lstlisting}[style=shell]
+gcc -g -O0 -Wall -Wextra -std=c11 \
+    -Iinclude \
+    tests/test_correlacao.c \
+    src/correlacao.c \
+    -o /tmp/test_correlacao_gdb -lm
+
+gdb /tmp/test_correlacao_gdb
+\end{lstlisting}
+
+Dentro do GDB, foi criado um ponto de parada no início
+da função:
+
+\begin{lstlisting}
+break correlacao
+run
+\end{lstlisting}
+
+A execução foi interrompida quando o programa entrou
+na função. Nesse momento, foram inspecionados o tamanho
+da amostra e os primeiros elementos dos vetores:
+
+\begin{lstlisting}
+print n
+print amostra_x[0]
+print amostra_y[0]
+\end{lstlisting}
+
+Os valores observados foram $n=3$, $x_1=1$ e $y_1=3$,
+correspondentes às amostras de teste
+$X=\{1,2,3\}$ e $Y=\{3,5,7\}$.
+
+Em seguida, foram utilizados pontos de parada
+temporários (\cod{tbreak}) e o comando \cod{continue}
+para avançar até as etapas do cálculo das médias,
+das somas e do denominador da correlação.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Variável inspecionada & Valor observado \\
+\midrule
+\cod{n} & 3 \\
+\cod{soma\_x} & 6 \\
+\cod{soma\_y} & 15 \\
+\cod{media\_x} & 2 \\
+\cod{media\_y} & 5 \\
+\cod{soma\_produtos} & 4 \\
+\cod{soma\_quadrados\_x} & 2 \\
+\cod{soma\_quadrados\_y} & 8 \\
+\bottomrule
+\end{tabular}
+\caption{Valores intermediários inspecionados com GDB
+na função de correlação.}
+\end{table}
+
+Os valores encontrados são consistentes com a fórmula
+da correlação de Pearson. Para essas amostras, o
+numerador é igual a $4$ e o denominador matemático
+também é igual a $4$, produzindo uma correlação igual
+a $1$.
+
+Entretanto, durante a inspeção com GDB, foi observado
+que a variável \cod{denominador} possuía o valor
+aproximado de 4,0000000000000009. O resultado retornado
+pela função foi aproximadamente
+0,99999999999999978.
+
+Essa pequena diferença em relação aos valores
+matemáticos exatos ocorre devido às limitações da
+representação de números em ponto flutuante,
+utilizada pelo tipo \cod{double} em C.
+
+Por esse motivo, os testes automatizados do módulo
+não utilizam igualdade exata entre valores reais.
+Em vez disso, empregam uma tolerância de $10^{-9}$:
+
+\begin{lstlisting}
+assert(fabs(obtido - esperado) < 1e-9);
+\end{lstlisting}
+
+Essa estratégia permite verificar corretamente
+resultados numéricos sujeitos a pequenas diferenças
+de arredondamento.
+
+Ao final da inspeção, o comando \cod{finish} permitiu
+confirmar o retorno da função. A execução posterior
+dos testes terminou normalmente, sem falhas.
+
+Diferentemente do cenário de defeito proposital
+apresentado anteriormente, essa sessão teve caráter
+de verificação e compreensão do funcionamento interno
+da implementação. Não foi necessário corrigir um
+defeito na função de correlação.
+
+A experiência demonstrou a utilidade do GDB para
+acompanhar variáveis intermediárias, localizar etapas
+específicas da execução e compreender diferenças
+entre resultados matemáticos exatos e resultados
+representados em ponto flutuante.
 
 % ===============================================================
 \section{Aplicação Cliente}
@@ -861,6 +1258,7 @@ Alvo & Função \\
 \cod{make clean}    & remove os arquivos gerados \\
 \cod{make run}      & compila e executa \cod{bin/app} (estático) \\
 \cod{make run-dyn}  & compila e executa \cod{bin/app\_dyn} com \cod{LD\_LIBRARY\_PATH} \\
+\cod{make install}   & instala bibliotecas e cabeçalhos no diretório definido por \cod{PREFIX} \\
 \bottomrule
 \end{tabular}
 \caption{Alvos do Makefile.}
@@ -898,6 +1296,132 @@ LD_LIBRARY_PATH=lib ./bin/app_dyn
 \end{lstlisting}
 Alternativamente, o caminho pode ser gravado no executável com
 \cod{-Wl,-rpath}.
+
+% ---------------------------------------------------------------
+\subsection{Instalação da biblioteca}
+% ---------------------------------------------------------------
+
+Para permitir que a biblioteca seja utilizada por programas
+externos ao diretório do projeto, foi implementado o alvo
+\cod{install} no Makefile.
+
+Esse alvo instala as duas versões da biblioteca,
+estática e dinâmica, juntamente com os cabeçalhos
+públicos necessários para sua utilização.
+
+O diretório de instalação é configurado pela variável
+\cod{PREFIX}, cujo valor padrão é o diretório
+\cod{\$HOME/.local}. Dessa maneira, a instalação
+pode ser realizada no diretório pessoal do usuário,
+sem necessidade de privilégios administrativos.
+
+O comando utilizado para verificar a instalação foi:
+
+\begin{lstlisting}[style=shell]
+make install PREFIX="$HOME/.local"
+\end{lstlisting}
+
+O alvo depende das bibliotecas
+\cod{libestat.a} e \cod{libestat.so}.
+Portanto, caso elas ainda não tenham sido compiladas,
+o Makefile realiza sua construção antes da instalação.
+
+Os arquivos são organizados da seguinte maneira:
+
+\begin{itemize}
+    \item \cod{\$HOME/.local/lib/libestat.a}:
+    biblioteca estática;
+
+    \item \cod{\$HOME/.local/lib/libestat.so}:
+    biblioteca dinâmica;
+
+    \item \cod{\$HOME/.local/include/}:
+    diretório que recebe os cinco cabeçalhos públicos.
+\end{itemize}
+
+Para a instalação, foram utilizados os comandos
+\cod{install -d}, responsável pela criação dos
+diretórios necessários, e \cod{install -m},
+responsável pela cópia dos arquivos com as permissões
+definidas.
+
+As bibliotecas e os cabeçalhos foram instalados
+com sucesso no diretório pessoal do usuário.
+
+\subsubsection{Verificação da instalação}
+
+Após a instalação, foi criado um pequeno programa
+C externo ao projeto para verificar se a biblioteca
+poderia ser utilizada independentemente da estrutura
+original dos arquivos-fonte.
+
+O programa incluiu os cabeçalhos
+\cod{correlacao.h} e \cod{erros.h} e realizou
+uma chamada à função \cod{correlacao} com as amostras
+$X=\{1,2,3\}$ e $Y=\{3,5,7\}$.
+
+O resultado esperado era uma correlação igual a
+$1$, acompanhada do código \cod{ESTAT\_OK}.
+
+Primeiramente, o programa foi compilado utilizando
+a biblioteca estática instalada:
+
+\begin{lstlisting}[style=shell]
+gcc -Wall -Wextra -std=c11 \
+    -I"$HOME/.local/include" \
+    /tmp/teste_libestat_instalada.c \
+    "$HOME/.local/lib/libestat.a" \
+    -lm -o /tmp/teste_libestat_instalada
+
+/tmp/teste_libestat_instalada
+\end{lstlisting}
+
+A execução produziu a seguinte saída:
+
+\begin{lstlisting}
+Correlacao: 1.000000
+Codigo de erro: 0
+\end{lstlisting}
+
+Em seguida, o mesmo programa foi compilado com
+a biblioteca dinâmica instalada:
+
+\begin{lstlisting}[style=shell]
+gcc -Wall -Wextra -std=c11 \
+    -I"$HOME/.local/include" \
+    /tmp/teste_libestat_instalada.c \
+    -L"$HOME/.local/lib" -lestat \
+    -lm -o /tmp/teste_libestat_dinamica
+
+LD_LIBRARY_PATH="$HOME/.local/lib" \
+    /tmp/teste_libestat_dinamica
+\end{lstlisting}
+
+A execução dinâmica também apresentou o resultado
+esperado:
+
+\begin{lstlisting}
+Correlacao: 1.000000
+Codigo de erro: 0
+\end{lstlisting}
+
+Por fim, o comando \cod{ldd} foi utilizado para
+confirmar que o executável dinâmico estava carregando
+a biblioteca compartilhada instalada:
+
+\begin{lstlisting}[style=shell]
+LD_LIBRARY_PATH="$HOME/.local/lib" \
+    ldd /tmp/teste_libestat_dinamica \
+    | grep libestat
+\end{lstlisting}
+
+O resultado confirmou que \cod{libestat.so} foi
+localizada no diretório \cod{\$HOME/.local/lib}.
+
+Esses testes demonstraram que o alvo \cod{install}
+permite disponibilizar a biblioteca para programas
+externos, tanto por ligação estática quanto por
+ligação dinâmica.
 
 % ===============================================================
 \section{Documentação com Doxygen}
@@ -1003,14 +1527,166 @@ problema ao avisar que o argumento não era um valor booleano válido.
 % ===============================================================
 
 \subsection{Fluxo de branches}
-\todo{autor: D. Branches \cod{main}, \cod{develop}, \cod{esperanca}, \cod{modelos},
-\cod{variancia}, \cod{app\_client} etc., e a regra de integração em \cod{develop}}
+
+O desenvolvimento do projeto foi organizado utilizando
+o sistema de controle de versão Git, com o repositório
+remoto hospedado no GitHub.
+
+O grupo adotou uma estratégia de desenvolvimento
+baseada em branches, permitindo que cada integrante
+implementasse suas funcionalidades de maneira
+independente, sem modificar diretamente a versão
+principal do projeto.
+
+A branch \cod{main} foi reservada para a versão
+estável destinada à entrega final, enquanto a branch
+\cod{develop} foi utilizada para integrar e testar
+as contribuições dos integrantes.
+
+Para o desenvolvimento do módulo de correlação,
+foi criada a branch
+\cod{feature/correlacao-implementacao}.
+Nela foram implementadas as funções de covariância,
+correlação de Pearson e regressão linear simples,
+além dos respectivos testes automatizados.
+
+Após a implementação e a execução dos testes,
+as alterações foram registradas em um commit e
+enviadas ao repositório remoto. Em seguida,
+foi criado um Pull Request para integrar a
+funcionalidade à branch \cod{develop}.
+
+Posteriormente, foi criada a branch
+\cod{feature/make-install}, destinada à implementação
+do alvo \cod{install} no Makefile.
+
+Essa funcionalidade permitiu instalar as bibliotecas
+estática e dinâmica, juntamente com os cabeçalhos
+públicos, em um diretório configurável por meio
+da variável \cod{PREFIX}.
+
+Após a validação da instalação e dos testes com
+programas externos, as alterações também foram
+integradas à branch \cod{develop} por meio de
+um Pull Request.
+
+A documentação das contribuições foi realizada
+separadamente, na branch
+\cod{docs/relatorio-correlacao}.
+
+Esse fluxo de trabalho permitiu separar o
+desenvolvimento individual da integração do projeto,
+facilitando a revisão das alterações e a manutenção
+de um histórico organizado.
+
+A integração final da branch \cod{develop} à
+\cod{main}, juntamente com a criação da tag
+\cod{v1.0}, foi planejada para a etapa de
+finalização e entrega do projeto.
+\cod{v1.0}, foi planejada para a etapa de
+finalização e entrega do projeto.
 
 \subsection{Histórico}
-\todo{\cod{git log --oneline --graph} resumido}
+
+O histórico do repositório registra o desenvolvimento
+incremental da biblioteca e a integração das
+contribuições dos integrantes do grupo.
+
+Para visualizar os commits e as relações entre
+as branches, foi utilizado o comando:
+
+\begin{lstlisting}[style=shell]
+git log --oneline --graph --decorate --all
+\end{lstlisting}
+
+A Tabela a seguir apresenta alguns dos commits
+representativos do desenvolvimento.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lp{10cm}@{}}
+\toprule
+Commit & Descrição \\
+\midrule
+
+\cod{79d42e4} &
+Implementação do módulo de correlação, incluindo
+as três funções públicas e os testes automatizados. \\
+
+\cod{1ba33a9} &
+Correção da convenção e do tratamento de erros
+da distribuição geométrica no módulo de esperança. \\
+
+\cod{ca2e2af} &
+Adição dos alvos \cod{run} e \cod{run-dyn}
+ao Makefile. \\
+
+\cod{46d2c19} &
+Ampliação dos testes de distribuições e
+padronização da função de aproximação numérica. \\
+
+\cod{0daa315} &
+Preenchimento de partes do relatório em LaTeX. \\
+
+\cod{4f4ec94} &
+Adição das saídas dos testes e da aplicação
+cliente ao relatório. \\
+
+\cod{7041eb9} &
+Complementação das seções de distribuições,
+testes automatizados e documentação Doxygen. \\
+
+\cod{9033ddc} &
+Implementação do alvo \cod{install} com a
+variável \cod{PREFIX} configurável. \\
+
+\cod{212816d} &
+Integração da funcionalidade de instalação
+à branch \cod{develop}, por meio do
+Pull Request número 6. \\
+
+\bottomrule
+\end{tabular}
+\caption{Exemplos de commits registrados no
+histórico do projeto.}
+\end{table}
+
+O desenvolvimento em branches individuais permitiu
+que diferentes módulos fossem implementados em
+paralelo.
+
+As integrações foram realizadas na branch
+\cod{develop}, reunindo implementações, testes,
+documentação e melhorias no sistema de compilação.
+
+A utilização de commits com mensagens descritivas
+facilitou a identificação das alterações realizadas
+e o acompanhamento da evolução do projeto.
 
 \subsection{Conflitos e como foram resolvidos}
-\todo{se houve algum}
+
+As funcionalidades do módulo de correlação e do alvo
+\cod{install} foram desenvolvidas em branches próprias
+e integradas à branch \cod{develop} por meio de
+Pull Requests.
+
+Nessas duas contribuições, não foi necessário
+realizar uma resolução manual de conflitos durante
+a integração.
+
+O desenvolvimento em branches separadas permitiu
+que as alterações fossem revisadas antes de serem
+incorporadas à versão de integração.
+
+Essa organização também reduziu o risco de
+sobrescrever modificações realizadas por outros
+integrantes do grupo.
+
+O histórico registra ainda atualizações entre
+branches de desenvolvimento, como integrações da
+\cod{develop} à branch \cod{readme} e o posterior
+merge desta à \cod{develop}.
 
 \subsection{Versão \cod{v1.0}}
 \todo{tag, data e hash do commit}
@@ -1049,6 +1725,14 @@ Como melhorias futuras, a biblioteca poderia incluir novos modelos, como a Norma
 % ===============================================================
 \appendix
 \section{Código-fonte}
+\subsection{\cod{include/correlacao.h}}
+\fonte{../../include/correlacao.h}
+
+\subsection{\cod{src/correlacao.c}}
+\fonte{../../src/correlacao.c}
+
+\subsection{\cod{tests/test\_correlacao.c}}
+\fonte{../../tests/test_correlacao.c}
 % ===============================================================
 \subsection{\cod{include/variancia\_modelos.h}}
 \fonte{../../include/variancia_modelos.h}
@@ -1060,13 +1744,13 @@ Como melhorias futuras, a biblioteca poderia incluir novos modelos, como a Norma
 \fonte{../../tests/test_variancia_modelos.c}
 
 \subsection{\cod{include/distribuicoes.h}}
-\fonte{../../include/variancia_modelos.h}
+\fonte{../../include/distribuicoes.h}
 
 \subsection{\cod{src/distribuicoes.c}}
-\fonte{../../src/variancia_modelos.c}
+\fonte{../../src/distribuicoes.c}
 
 \subsection{\cod{tests/test\_distribuicoes.c}}
-\fonte{../../tests/test_variancia_modelos.c}
+\fonte{../../tests/test_distribuicoes.c}
 
 \subsection{\cod{app/main.c}}
 \fonte{../../app/main.c}
