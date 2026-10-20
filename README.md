@@ -141,6 +141,9 @@ O comando `make clean` apaga os arquivos gerados: os objetos (`*.o`) de `build/`
 | `app` | Compila a aplicação cliente com a biblioteca estática (não a executa). | `bin/app` |
 | `app-dyn` | Compila a aplicação cliente com a biblioteca dinâmica (não a executa). | `bin/app_dyn` |
 | `clean` | Apaga os arquivos gerados em `build/`, `lib/` e `bin/`. | Nada |
+| `run` | Compila e executa a aplicação com a biblioteca estática. | `bin/app` |
+| `run-dyn` | Compila e executa a aplicação com a biblioteca dinâmica, usando `LD_LIBRARY_PATH=lib`. | `bin/app_dyn` |
+| `install` | Copia as bibliotecas e os cabeçalhos para o prefixo `PREFIX`. | `$(PREFIX)/lib` e `$(PREFIX)/include` |
  
 ## Execução
  
@@ -217,6 +220,23 @@ Para rodar o programa gerado na versão dinâmica, é necessário informar onde 
 LD_LIBRARY_PATH=lib ./programa
 ```
  
+## Instalação
+
+O alvo `install` copia `libestat.a` e `libestat.so` para `$(PREFIX)/lib` e os cabeçalhos de `include/` para `$(PREFIX)/include`. O prefixo pode ser alterado, então a instalação não exige privilégios de administrador:
+
+```bash
+make install PREFIX=$HOME/.local
+```
+
+Para compilar um programa com a biblioteca instalada:
+
+```bash
+gcc -I$HOME/.local/include programa.c -L$HOME/.local/lib -lestat -lm -o programa
+LD_LIBRARY_PATH=$HOME/.local/lib ./programa
+```
+
+O `LD_LIBRARY_PATH` é necessário porque, com `-lestat`, o linker escolhe a biblioteca dinâmica quando as duas existem na mesma pasta.
+
 ## Documentação com Doxygen
  
 O Doxygen gera páginas HTML a partir dos comentários dos headers em `include/`, e este README é usado como página principal.
